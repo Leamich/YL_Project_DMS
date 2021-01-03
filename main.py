@@ -7,7 +7,7 @@ FPS = 30
 
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
-        super().__init__(all_sprites)
+        super().__init__()
         self.frames = []
         self.cut_sheet(sheet, columns, rows)
         self.cur_frame = 0
@@ -26,6 +26,17 @@ class AnimatedSprite(pygame.sprite.Sprite):
     def update(self):
         self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
+
+
+class RoboticHero(AnimatedSprite):
+    """
+    Класс для игрока
+    х и у - координаты места первого появления персонажа
+    """
+    def __init__(self, x=0, y=0):
+        super().__init__(load_image('robot_steps.png'), 3, 1, x, y)
+        self.walk = False  # идёт ли персонаж (для анимации)
+        self.fall = False  # падает ли персонаж
 
 
 def load_image(name, colorkey=None):
