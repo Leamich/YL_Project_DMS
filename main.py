@@ -66,11 +66,14 @@ def main():
     size = width, height = 750, 500
     screen = pygame.display.set_mode(size)
     clock = pygame.time.Clock()
+    all_sprites = pygame.sprite.Group()
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
+        all_sprites.update()
+        all_sprites.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
