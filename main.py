@@ -28,6 +28,17 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
 
 
+class RoboticHero(AnimatedSprite):
+    """
+    Класс для игрока
+    х и у - координаты места первого появления персонажа
+    """
+    def __init__(self, x=0, y=0):
+        super().__init__(load_image('robot_steps.png'), 3, 1, x, y)
+        self.walk = False  # идёт ли персонаж (для анимации)
+        self.fall = False  # падает ли персонаж
+
+
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     # если файл не существует, то выходим
