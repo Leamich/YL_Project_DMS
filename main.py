@@ -3,6 +3,8 @@ import os
 import sys
 
 FPS = 30
+HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
+             pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -34,9 +36,46 @@ class RoboticHero(AnimatedSprite):
     х и у - координаты места первого появления персонажа
     """
     def __init__(self, x=0, y=0):
-        super().__init__(load_image('robot_steps.png'), 3, 1, x, y)
+        img = load_image('robot_steps.png')
+        super().__init__(pygame.transform.scale(
+            img, (img.get_width() // 3, img.get_height() // 3)),
+            3, 1, x, y)
         self.walk = False  # идёт ли персонаж (для анимации)
         self.fall = False  # падает ли персонаж
+        self.time = 0
+
+    def motion(self, key):
+        """
+        Функция для управления персонажем.
+        Принимает нажатую клавишу.
+        """
+        if self.fall:
+            return
+        if key in (pygame.K_w, pygame.K_UP):
+            self.rect.y -= 20
+        elif key in (pygame.K_a, pygame.K_LEFT):
+            self.rect.x -= 10
+        elif key in (pygame.K_d, pygame.K_RIGHT):
+            self.rect.x += 10
+        self.fix_collides()
+
+    def fix_collides(self):
+        """Защита от наскоков (в дальнейшем будет дополняться)"""
+        if self.rect.x < 0:
+            self.rect.x = 0
+        if self.rect.x + self.rect.w > 750:
+            self.rect.x = 750 - self.rect.w
+        if self.rect.y < 0:
+            self.rect.y = 0
+        if self.rect.y + self.rect.h > 500:
+            self.rect.y = 500 - self.rect.h
+
+        self.fall = self.rect.y + self.rect.h != 500
+
+    def update(self):
+        if self.walk:
+            self.cur_frame = (self.cur_frame + 1) % 3
+            self.image = self.frames[self.cur_frame]
 
 
 def load_image(name, colorkey=None):
@@ -63,15 +102,23 @@ def terminate():
 
 def main():
     pygame.init()
-    size = width, height = 750, 500
+    size = 750, 500
     screen = pygame.display.set_mode(size)
     clock = pygame.time.Clock()
+
     all_sprites = pygame.sprite.Group()
+    hero = RoboticHero(y=600)
+    hero.fix_collides()
+    hero.add(all_sprites)
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
+            if event.type == pygame.KEYDOWN:
+                if event.key in HERO_KEYS:
+                    hero.motion(event.key)
+        screen.fill((255, 255, 255))
         all_sprites.update()
         all_sprites.draw(screen)
         pygame.display.flip()
