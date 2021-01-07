@@ -57,7 +57,7 @@ class RoboticHero(AnimatedSprite):
         if self.fall:
             return
         if key in (pygame.K_w, pygame.K_UP):
-            self.rect.y -= 20
+            self.rect.y -= 52
         elif key in (pygame.K_a, pygame.K_LEFT):
             self.rect.x -= 10
         elif key in (pygame.K_d, pygame.K_RIGHT):
@@ -72,10 +72,10 @@ class RoboticHero(AnimatedSprite):
             self.rect.x = 750 - self.rect.w
         if self.rect.y < 0:
             self.rect.y = 0
-        if self.rect.y + self.rect.h > 500:
+        if self.rect.y + self.rect.h > 450:
             self.rect.y = 500 - self.rect.h
 
-        self.fall = self.rect.y + self.rect.h != 500
+        self.fall = self.rect.y + self.rect.h != 450
 
     def update(self):
         if self.walk:
@@ -138,10 +138,9 @@ def main():
     make_level(level_map)
 
     all_sprites = pygame.sprite.Group()
-    hero = RoboticHero(y=350)
+    hero = RoboticHero(y=362)
     hero.fix_collides()
     hero.add(all_sprites)
-
 
     while True:
         for event in pygame.event.get():
@@ -150,6 +149,8 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if event.key in HERO_KEYS:
                     hero.motion(event.key)
+        level_map = load_level("map.map")
+        make_level(level_map)
         all_sprites.update()
         all_sprites.draw(screen)
         pygame.display.flip()
