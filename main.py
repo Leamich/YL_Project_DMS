@@ -3,6 +3,7 @@ import os
 import sys
 
 FPS = 30
+SIZE = (750, 500)
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
@@ -44,7 +45,7 @@ class RoboticHero(AnimatedSprite):
         self.fall = False  # падает ли персонаж
         self.time = 0
 
-    def motion(self, key):
+    def motion(self, key):  # Вместо этой надо создать функцию update для hero
         """
         Функция для управления персонажем.
         Принимает нажатую клавишу.
@@ -59,18 +60,9 @@ class RoboticHero(AnimatedSprite):
             self.rect.x += 10
         self.fix_collides()
 
-    def fix_collides(self):
+    def fix_collides(self):  # Надо переделать
         """Защита от наскоков (в дальнейшем будет дополняться)"""
-        if self.rect.x < 0:
-            self.rect.x = 0
-        if self.rect.x + self.rect.w > 750:
-            self.rect.x = 750 - self.rect.w
-        if self.rect.y < 0:
-            self.rect.y = 0
-        if self.rect.y + self.rect.h > 450:
-            self.rect.y = 500 - self.rect.h
-
-        self.fall = self.rect.y + self.rect.h != 450
+        pass
 
     def update(self):
         if self.walk:
@@ -112,6 +104,32 @@ def load_image(name, colorkey=None):
     return image
 
 
+# Камера
+class Camera:
+    def __init__(self, camera_func, width, height):
+        self.camera_func = camera_func
+        self.state = pygame.Rect(0, 0, width, height)
+
+    def apply(self, target):
+        return target.rect.move(self.state.topleft)
+
+    def update(self, target):
+        self.state = self.camera_func(self.state, target.rect)
+
+
+def camera_func(camera, target_rect):
+    l = -target_rect.x + SIZE[0] / 2.24
+    t = -target_rect.y + SIZE[1] / 2.24
+    w, h = camera.width, camera.height
+
+    l = min(0, l)
+    l = max(-(camera.width-SIZE[0]), l)
+    t = max(-(camera.height-SIZE[1]), t)
+    t = min(0, t)
+
+    return pygame.Rect(l, t, w, h)
+
+
 def terminate():
     pygame.quit()
     sys.exit()
@@ -145,9 +163,14 @@ def main():
         y += 50
         x = 0
 
-    hero = RoboticHero(y=362)
+    hero = RoboticHero(x=50, y=612)
     hero.fix_collides()
     hero.add(all_sprites)
+
+    # Камера
+    total_level_width = len(level_map[0])*50
+    total_level_height = len(level_map)*50
+    camera = Camera(camera_func, total_level_width, total_level_height)
 
     while True:
         for event in pygame.event.get():
@@ -158,7 +181,9 @@ def main():
                     hero.motion(event.key)
         screen.blit(background, (0, 0))
         all_sprites.update()
-        all_sprites.draw(screen)
+        camera.update(hero)
+        for e in all_sprites:
+            screen.blit(e.image, camera.apply(e))
         pygame.display.flip()
         clock.tick(FPS)
 
