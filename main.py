@@ -5,6 +5,7 @@ import sys
 FPS = 30
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
+HERO_FALL_SPEED = 100
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -41,23 +42,35 @@ class RoboticHero(AnimatedSprite):
             img, (img.get_width() // 3, img.get_height() // 3)),
             3, 1, x, y)
         self.walk = False  # идёт ли персонаж (для анимации)
-        self.fall = False  # падает ли персонаж
-        self.time = 0
+        self.horizontal_speed = 0  # если > 0 - идёт вправо, < 0 - влево
+        self.vertical_speed = 0  # если < 0 - вверх, > 0 - вниз
+        self.x, self.y = self.rect.x, self.rect.y
 
     def motion(self, key):
         """
         Функция для управления персонажем.
         Принимает нажатую клавишу.
         """
-        if self.fall:
+        if self.vertical_speed != 0:
             return
-        if key in (pygame.K_w, pygame.K_UP):
-            self.rect.y -= 20
+        if key in (pygame.K_w, pygame.K_UP):  # прыжок
+            self.y -= 20
+            self.vertical_speed = HERO_FALL_SPEED
         elif key in (pygame.K_a, pygame.K_LEFT):
-            self.rect.x -= 10
+            self.horizontal_speed = -50
+            self.walk = True
         elif key in (pygame.K_d, pygame.K_RIGHT):
-            self.rect.x += 10
+            self.horizontal_speed = 50
+            self.walk = True
         self.fix_collides()
+
+    def stop_motion(self, key):
+        """Функция для остановки персонажа (при отжатии клавиши)"""
+        if key in (pygame.K_a, pygame.K_LEFT,
+                   pygame.K_d, pygame.K_RIGHT)\
+                and self.vertical_speed == 0:
+            self.horizontal_speed = 0
+            self.walk = False
 
     def fix_collides(self):
         """Защита от наскоков (в дальнейшем будет дополняться)"""
@@ -70,9 +83,10 @@ class RoboticHero(AnimatedSprite):
         if self.rect.y + self.rect.h > 500:
             self.rect.y = 500 - self.rect.h
 
-        self.fall = self.rect.y + self.rect.h != 500
-
     def update(self):
+        self.x += self.horizontal_speed / FPS
+        self.y += self.vertical_speed / FPS
+        self.rect.x, self.rect.y = int(self.x), int(self.y)
         if self.walk:
             self.cur_frame = (self.cur_frame + 1) % 3
             self.image = self.frames[self.cur_frame]
@@ -107,7 +121,7 @@ def main():
     clock = pygame.time.Clock()
 
     all_sprites = pygame.sprite.Group()
-    hero = RoboticHero(y=600)
+    hero = RoboticHero(0, 0)
     hero.fix_collides()
     hero.add(all_sprites)
 
@@ -118,6 +132,9 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if event.key in HERO_KEYS:
                     hero.motion(event.key)
+            if event.type == pygame.KEYUP:
+                if event.key in HERO_KEYS:
+                    hero.stop_motion(event.key)
         screen.fill((255, 255, 255))
         all_sprites.update()
         all_sprites.draw(screen)
