@@ -6,6 +6,11 @@ FPS = 30
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
+pygame.init()
+size = 750, 500
+screen = pygame.display.set_mode(size)
+clock = pygame.time.Clock()
+
 
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
@@ -78,14 +83,10 @@ class RoboticHero(AnimatedSprite):
             self.image = self.frames[self.cur_frame]
 
 
-class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
+class Platform:
+    def __init__(self):
         image = pygame.image.load('data/black_block.jpg')
         self.image = pygame.transform.scale(image, (50, 50))
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
 
 
 def load_level(filename):
@@ -94,6 +95,20 @@ def load_level(filename):
         level_map = [line.strip() for line in mapFile]
     max_width = max(map(len, level_map))
     return list(map(lambda x: list(x.ljust(max_width, '.')), level_map))
+
+
+def make_level(level):
+    x = 0
+    y = 0
+    screen.fill((75, 155, 200))
+    for row in level:
+        for col in row:
+            if col == '-':
+                pl = Platform()
+                screen.blit(pl.image, (x, y))
+            x += 50
+        y += 50
+        x = 0
 
 
 def load_image(name, colorkey=None):
@@ -118,33 +133,11 @@ def terminate():
 
 
 def main():
-    pygame.init()
-    size = 750, 500
-    screen = pygame.display.set_mode(size)
-    clock = pygame.time.Clock()
-
     # загрузка уровня
     level_map = load_level("map.map")
+    make_level(level_map)
 
-    # группа спрайтов
     all_sprites = pygame.sprite.Group()
-
-    # создание уровня
-    background = pygame.Surface((750, 500))
-    background.fill((75, 155, 200))
-    blocks = []
-    x = 0
-    y = 0
-    for row in level_map:
-        for col in row:
-            if col == '-':
-                pl = Platform(x, y)
-                all_sprites.add(pl)
-                blocks.append(pl)
-            x += 50
-        y += 50
-        x = 0
-
     hero = RoboticHero(y=362)
     hero.fix_collides()
     hero.add(all_sprites)
@@ -156,7 +149,8 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if event.key in HERO_KEYS:
                     hero.motion(event.key)
-        screen.blit(background, (0, 0))
+        level_map = load_level("map.map")
+        make_level(level_map)
         all_sprites.update()
         all_sprites.draw(screen)
         pygame.display.flip()
