@@ -6,11 +6,6 @@ FPS = 30
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
-pygame.init()
-size = 750, 500
-screen = pygame.display.set_mode(size)
-clock = pygame.time.Clock()
-
 
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
@@ -83,36 +78,9 @@ class RoboticHero(AnimatedSprite):
             self.image = self.frames[self.cur_frame]
 
 
-class Platform:
-    def __init__(self):
-        image = pygame.image.load('data/black_block.jpg')
-        self.image = pygame.transform.scale(image, (50, 50))
-
-
-def load_level(filename):
-    filename = "data/" + filename
-    with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
-    max_width = max(map(len, level_map))
-    return list(map(lambda x: list(x.ljust(max_width, '.')), level_map))
-
-
-def make_level(level):
-    x = 0
-    y = 0
-    screen.fill((75, 155, 200))
-    for row in level:
-        for col in row:
-            if col == '-':
-                pl = Platform()
-                screen.blit(pl.image, (x, y))
-            x += 50
-        y += 50
-        x = 0
-
-
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
+    # если файл не существует, то выходим
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
@@ -133,15 +101,15 @@ def terminate():
 
 
 def main():
-    # загрузка уровня
-    level_map = load_level("map.map")
-    make_level(level_map)
+    pygame.init()
+    size = 750, 500
+    screen = pygame.display.set_mode(size)
+    clock = pygame.time.Clock()
 
     all_sprites = pygame.sprite.Group()
-    hero = RoboticHero(y=350)
+    hero = RoboticHero(y=600)
     hero.fix_collides()
     hero.add(all_sprites)
-
 
     while True:
         for event in pygame.event.get():
@@ -150,6 +118,7 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if event.key in HERO_KEYS:
                     hero.motion(event.key)
+        screen.fill((255, 255, 255))
         all_sprites.update()
         all_sprites.draw(screen)
         pygame.display.flip()
