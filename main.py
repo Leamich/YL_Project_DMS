@@ -89,8 +89,39 @@ class RoboticHero(AnimatedSprite):
         self.fix_collides()
 
 
+class Button:
+    """Класс, симулирующий кнопку"""
+    def __init__(self, rect=None, func=None):
+        self.rect = rect  # прямоугольник, где находится кнопка
+        self.func = func  # функция при нажатии
+
+    def click_in_pos(self, pos):
+        """
+        Метод возвращает Boolean в зависимости от того,
+        была ли нажата кнопка
+        """
+        if self.rect is None:
+            return False
+
+        x, y = pos
+        if x in range(self.rect.x, self.rect.x + self.rect.w):
+            if y in range(self.rect.y, self.rect.y + self.rect.h):
+                return True
+        return False
+
+    def click(self, returnable=False):
+        """Симуляция нажатия кнопки"""
+        if returnable:
+            return self.func
+        else:
+            self.func()
+
+
 class Menu(AnimatedSprite):
     time = 0  # для контроля анимации
+    buttons = [Button(),  # Старт
+               Button(),  # Об игре
+               Button()]  # Выход
 
     def __init__(self):
         # загружаем изображение
