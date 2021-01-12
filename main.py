@@ -89,6 +89,34 @@ class RoboticHero(AnimatedSprite):
         self.fix_collides()
 
 
+class Menu(AnimatedSprite):
+    time = 0  # для контроля анимации
+
+    def __init__(self):
+        # загружаем изображение
+        super().__init__(pygame.transform.scale(  # сжимаем изображение
+            load_image('menu_sheet.png'), (750 * 3, 500 * 3)),  # до размеров экрана
+                         3, 3, 0, 0)
+
+    def update(self):
+        self.time += 1  # счётчик для уменьшения скорости анимации
+        # смена кадра 10 раз в секунду (примерно)
+        if self.time % 3 == 0 \
+                and self.cur_frame < len(self.frames) - 1:
+            super().update()
+
+    def get_button(self, pos):
+        """
+        По позиции клика определяет какая была нажата кнопка
+        Если кнопка не была нажата возвращает None
+        """
+        pass
+
+    def get_func(self, btn):
+        """По экземпляру кнопки запускает её функцию"""
+        pass
+
+
 class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -152,6 +180,10 @@ def camera_func(camera, target_rect):
 def terminate():
     pygame.quit()
     sys.exit()
+
+
+def menu(screen):
+    pass
 
 
 def main():
