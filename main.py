@@ -4,9 +4,11 @@ import sys
 
 FPS = 30
 SIZE = (750, 500)
+HERO_FALL_SPEED = 100
+HERO_JUMP_SPEED = -800
+HERO_RUN_SPEED = 100
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
-HERO_FALL_SPEED = 100
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -43,6 +45,7 @@ class RoboticHero(AnimatedSprite):
         super().__init__(pygame.transform.scale(
             img, (img.get_width() // 3, img.get_height() // 3)),
             3, 1, x, y)
+        self.on_ground = True
         self.walk = False  # идёт ли персонаж (для анимации)
         self.horizontal_speed = 0  # если > 0 - идёт вправо, < 0 - влево
         self.vertical_speed = 0  # если < 0 - вверх, > 0 - вниз
@@ -53,40 +56,54 @@ class RoboticHero(AnimatedSprite):
         Функция для управления персонажем.
         Принимает нажатую клавишу.
         """
-        if self.vertical_speed != 0:
-            return
         if key in (pygame.K_w, pygame.K_UP):  # прыжок
-            self.y -= 50
-            self.vertical_speed = HERO_FALL_SPEED
-        elif key in (pygame.K_a, pygame.K_LEFT):
-            self.horizontal_speed = -50
+            self.vertical_speed = HERO_JUMP_SPEED
+        if key in (pygame.K_a, pygame.K_LEFT):
+            self.horizontal_speed = -HERO_RUN_SPEED
             self.walk = True
-        elif key in (pygame.K_d, pygame.K_RIGHT):
-            self.horizontal_speed = 50
+        if key in (pygame.K_d, pygame.K_RIGHT):
+            self.horizontal_speed = HERO_RUN_SPEED
             self.walk = True
-        self.fix_collides()
 
     def stop_motion(self, key):
         """Функция для остановки персонажа (при отжатии клавиши)"""
         if key in (pygame.K_a, pygame.K_LEFT,
-                   pygame.K_d, pygame.K_RIGHT) \
-                and self.vertical_speed == 0:
+                   pygame.K_d, pygame.K_RIGHT):  # and self.vertical_speed == 0:
             self.horizontal_speed = 0
             self.walk = False
 
-    def fix_collides(self):
-        """Защита от наскоков (в дальнейшем будет дополняться)"""
-        pass
-
-    def update(self):
-        # print(self.horizontal_speed, self.vertical_speed)
-        self.x += self.horizontal_speed / FPS
+    def update(self, platforms):
+        self.on_ground = False
         self.y += self.vertical_speed / FPS
-        self.rect.x, self.rect.y = int(self.x), int(self.y)
+        self.rect.y = int(self.y)
+        self.fix_collides(0, self.vertical_speed, platforms)
+        self.x += self.horizontal_speed / FPS
+        self.rect.x = int(self.x)
+        self.fix_collides(self.horizontal_speed, 0, platforms)
+        self.x = self.rect.x
+        self.y = self.rect.y
+        # self.rect.x, self.rect.y = int(self.x), int(self.y)
         if self.walk:
             self.cur_frame = (self.cur_frame + 1) % 3
             self.image = self.frames[self.cur_frame]
-        self.fix_collides()
+        if not self.on_ground:
+            self.vertical_speed += HERO_FALL_SPEED
+
+    def fix_collides(self, xvel, yvel, platforms):
+        """Защита от наскоков (в дальнейшем будет дополняться)"""
+        for pl in platforms:
+            if pygame.sprite.collide_rect(self, pl):
+                if xvel > 0:
+                    self.rect.right = pl.rect.left
+                if xvel < 0:
+                    self.rect.left = pl.rect.right
+                if yvel > 0:
+                    self.rect.bottom = (pl.rect.top - 1)
+                    self.on_ground = True
+                    self.vertical_speed = 0
+                if yvel < 0:
+                    self.rect.top = pl.rect.bottom
+                    self.vertical_speed = 0
 
 
 class Platform(pygame.sprite.Sprite):
@@ -156,8 +173,7 @@ def terminate():
 
 def main():
     pygame.init()
-    size = 750, 500
-    screen = pygame.display.set_mode(size)
+    screen = pygame.display.set_mode(SIZE)
     clock = pygame.time.Clock()
 
     # загрузка уровня
@@ -171,7 +187,7 @@ def main():
     # создание уровня
     background = pygame.Surface((750, 500))
     background.fill((75, 155, 200))
-    blocks = []
+    platforms = []
     x = 0
     y = 0
     for row in level_map:
@@ -179,7 +195,7 @@ def main():
             if col == '-':
                 pl = Platform(x, y)
                 all_sprites.add(pl)
-                blocks.append(pl)
+                platforms.append(pl)
             x += 50
         y += 50
         x = 0
@@ -200,7 +216,7 @@ def main():
                 if event.key in HERO_KEYS:
                     hero.stop_motion(event.key)
         screen.blit(background, (0, 0))
-        all_sprites.update()
+        all_sprites.update(platforms)
         camera.update(hero)
         for e in all_sprites:
             screen.blit(e.image, camera.apply(e))
