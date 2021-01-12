@@ -141,11 +141,15 @@ class Menu(AnimatedSprite):
         По позиции клика определяет какая была нажата кнопка
         Если кнопка не была нажата возвращает None
         """
-        pass
+        return None
 
     def get_func(self, btn):
         """По экземпляру кнопки запускает её функцию"""
-        pass
+        return None
+
+    def clicked(self, pos):
+        btn = self.get_button(pos)
+        self.get_func(btn)
 
 
 class Platform(pygame.sprite.Sprite):
@@ -214,7 +218,18 @@ def terminate():
 
 
 def menu(screen):
-    pass
+    menu_sprite = Menu()
+    menu_group = pygame.sprite.Group()
+    menu_sprite.add(menu_group)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                menu_sprite.clicked(event.pos)
+        menu_group.update()
+        menu_group.draw(screen)
 
 
 def main():
