@@ -106,6 +106,79 @@ class RoboticHero(AnimatedSprite):
                     self.vertical_speed = 0
 
 
+class Button:
+    """Класс, симулирующий кнопку"""
+
+    def __init__(self, rect=None, func=None):
+        self.rect = rect  # прямоугольник, где находится кнопка
+        self.func = func  # функция при нажатии
+
+    def click_in_pos(self, pos):
+        """
+        Метод возвращает Boolean в зависимости от того,
+        была ли нажата кнопка
+        """
+        if self.rect is None:
+            return False
+
+        x, y = pos
+        if self.rect.x <= x <= self.rect.x + self.rect.w:
+            if self.rect.y <= y <= self.rect.y + self.rect.h:
+                return True
+        return False
+
+    def click(self, returnable=False):
+        """Симуляция нажатия кнопки"""
+        if returnable:
+            return self.func()
+        else:
+            self.func()
+
+
+class Menu(AnimatedSprite):
+    time = 0  # для контроля анимации
+    buttons = [Button(pygame.Rect(72, 97, 203, 61)),  # Старт
+               Button(pygame.Rect(74, 195, 193, 60)),  # Об игре
+               Button(pygame.Rect(70, 285, 201, 61))]  # Выход
+
+    def __init__(self):
+        # загружаем изображение
+        super().__init__(pygame.transform.scale(  # сжимаем изображение
+            load_image('menu_sheet.png'), (750 * 3, 500 * 3)),  # до размеров экрана
+            3, 3, 0, 0)
+
+        # Функции для кнопок
+        self.buttons[0].func = lambda: False
+        self.buttons[1].func = about_game
+        self.buttons[2].func = terminate
+
+    def update(self):
+        self.time += 1  # счётчик для уменьшения скорости анимации
+        # смена кадра 10 раз в секунду (примерно)
+        if self.time % 3 == 0 \
+                and self.cur_frame < len(self.frames) - 1:
+            super().update()
+
+    def get_button(self, pos):
+        """
+        По позиции клика определяет какая была нажата кнопка
+        Если кнопка не была нажата возвращает None
+        """
+        for btn in self.buttons:
+            if btn.click_in_pos(pos):
+                return btn
+        return Button(func=lambda: True)
+
+    def get_func(self, btn):
+        """По экземпляру кнопки запускает её функцию"""
+        return btn.click(returnable=True)
+
+    def clicked(self, pos):
+        """Обработка нажатия кнопки"""
+        btn = self.get_button(pos)
+        return self.get_func(btn)
+
+
 class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -171,10 +244,49 @@ def terminate():
     sys.exit()
 
 
+def about_game():
+    font = pygame.font.Font(None, 30)
+    texts = list()
+    for i in ('Portal 2D',
+              'Авторы:',
+              'Дамир Сагитов',
+              'Леонтьев Михаил',
+              'Сергей Голышев'):
+        texts.append(font.render(i, True, (0, 0, 0)))
+    for i, j in enumerate(texts):
+        menu_sprite.image.blit(j, (400, 200 + i * 20))
+    return True
+
+
+def menu():
+    global menu_sprite
+
+    menu_sprite = Menu()
+    menu_group = pygame.sprite.Group()
+    menu_sprite.add(menu_group)
+    clock = pygame.time.Clock()
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                running = menu_sprite.clicked(event.pos)
+        menu_group.update()
+        menu_group.draw(screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 def main():
+    global screen
+
     pygame.init()
     screen = pygame.display.set_mode(SIZE)
     clock = pygame.time.Clock()
+
+    menu()  # запуск меню
 
     # загрузка уровня
     level_map = load_level("map.map")
