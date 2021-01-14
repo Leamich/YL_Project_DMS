@@ -7,7 +7,7 @@ FPS = 30
 SIZE = (750, 500)
 HERO_FALL_SPEED = 100
 HERO_JUMP_SPEED = -800
-HERO_RUN_SPEED = 100
+HERO_RUN_SPEED = 150
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
@@ -26,8 +26,9 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
     # Обрезка картинки для анимации движения влево
     def cut_sheet(self, sheet, columns, rows):
+        columns_full = columns
         columns = columns // 2
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns_full,
                                 sheet.get_height() // rows)
         for j in range(rows):
             for i in range(columns):
@@ -58,6 +59,7 @@ class RoboticHero(AnimatedSprite):
     Класс для игрока
     х и у - координаты места первого появления персонажа
     """
+
     def __init__(self, x=0, y=0):
         img = load_image('robot_steps_6.png')
         super().__init__(pygame.transform.scale(
@@ -70,7 +72,7 @@ class RoboticHero(AnimatedSprite):
         self.horizontal_speed = 0  # если > 0 - идёт вправо, < 0 - влево
         self.vertical_speed = 0  # если < 0 - вверх, > 0 - вниз
         self.x, self.y = self.rect.x, self.rect.y
-    
+
     def motion(self, key):
         """
         Функция для управления персонажем.
@@ -103,9 +105,8 @@ class RoboticHero(AnimatedSprite):
             elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
                 self.motion(pygame.K_RIGHT)  # если зажата правая кнопка
 
-
     # Функция обновления координат персонажа
-    def update(self, platforms):
+    def update(self):
         if self.walk:
             if self.horizontal_speed > 0:
                 self.direction = True
@@ -118,16 +119,16 @@ class RoboticHero(AnimatedSprite):
         self.on_ground = False
         self.y += self.vertical_speed / FPS
         self.rect.y = int(self.y)
-        self.fix_collides(0, self.vertical_speed, platforms)
+        self.fix_collides(0, self.vertical_speed)
         self.x += self.horizontal_speed / FPS
         self.rect.x = int(self.x)
-        self.fix_collides(self.horizontal_speed, 0, platforms)
+        self.fix_collides(self.horizontal_speed, 0)
         self.x = self.rect.x
         self.y = self.rect.y
         if not self.on_ground:
             self.vertical_speed += HERO_FALL_SPEED
-     
-    def fix_collides(self, xvel, yvel, platforms):
+
+    def fix_collides(self, xvel, yvel):
         """Защита от наскоков (в дальнейшем будет дополняться)"""
         for pl in platforms:
             if pygame.sprite.collide_rect(self, pl):
@@ -183,7 +184,7 @@ class Menu(AnimatedSprite):
     def __init__(self):
         # загружаем изображение
         super().__init__(pygame.transform.scale(  # сжимаем изображение
-            load_image('menu_sheet.png'), (750 * 3, 500 * 3)),  # до размеров экрана
+            load_image('menu_sheet.png'), (SIZE[0] * 3, SIZE[1] * 3)),  # до размеров экрана
             3, 3, 0, 0)
 
         # Функции для кнопок
@@ -311,12 +312,6 @@ def menu():
     menu_group = pygame.sprite.Group()
     menu_sprite.add(menu_group)
     clock = pygame.time.Clock()
-    pygame.display.set_caption("Portal 2D")
-
-    # Фон
-    bg = pygame.image.load('data/Portal_fon.jpg')
-    bg = pygame.transform.scale(bg, (850, 500))
-    bd_rect = bg.get_rect()
 
     running = True
     while running:
@@ -404,10 +399,12 @@ def main():
     global screen
     global all_sprites
     global hero
+    global platforms
 
     pygame.init()
     screen = pygame.display.set_mode(SIZE)
     clock = pygame.time.Clock()
+    pygame.display.set_caption("Portal 2D")
 
     menu()  # запуск меню
 
@@ -416,7 +413,12 @@ def main():
     hero = RoboticHero()
 
     # установка уровня
-    background, platforms, level_map = setup_level('map.map', (50, 612))
+    background, platforms, level_map = setup_level('map.map', (50, 822))
+
+    # Фон
+    bg = pygame.image.load('data/Portal_fon.jpg')
+    bg = pygame.transform.scale(bg, (850, 500))
+    bd_rect = bg.get_rect()
 
     # Камера
     total_level_width = len(level_map[0]) * 50
@@ -451,7 +453,7 @@ def main():
         screen.blit(background, (0, 0))
 
         screen.blit(bg, bd_rect)
-        all_sprites.update(platforms)
+        all_sprites.update()
         camera.update(hero)
         for e in all_sprites:
             screen.blit(e.image, camera.apply(e))
