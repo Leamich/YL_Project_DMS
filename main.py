@@ -24,6 +24,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.image = self.frames_2[self.cur_frame]
         self.rect = self.rect.move(x, y)
 
+    # Обрезка картинки для анимации движения влево
     def cut_sheet(self, sheet, columns, rows):
         columns = columns // 2
         self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
@@ -34,6 +35,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
+    # Обрезка картинки для анимации движения вправо
     def cut_sheet_2(self, sheet, columns, rows):
         columns = columns // 2
         self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
@@ -44,6 +46,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
                 self.frames_2.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
+    # Обновление анимации
     def update(self):
         self.cur_frame = (self.cur_frame + 1) % 6  # len(self.frames)
         self.image = self.frames[self.cur_frame]
