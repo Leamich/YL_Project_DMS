@@ -285,6 +285,39 @@ def menu():
         clock.tick(FPS)
 
 
+def pause():
+    def start_menu():  # запуск меню для кнопки
+        menu()
+        return False
+
+    clock = pygame.time.Clock()
+
+    # инициализация меню
+    menu_group = pygame.sprite.Group()
+    menu_sprite = Menu()
+    menu_sprite.add(menu_group)
+    menu_sprite.frames = tuple()
+    im = load_image('menu_pause.png')
+    menu_sprite.image = pygame.transform.scale(im,
+                                               (im.get_width() // 8,
+                                                im.get_height() // 8))
+    menu_sprite.rect = menu_sprite.image.get_rect()
+    menu_sprite.rect.x, menu_sprite.rect.y = 200, 150
+    menu_sprite.buttons = [Button(pygame.Rect(246, 174, 276, 51), lambda: False),  # Продолжить
+                           Button(pygame.Rect(253, 269, 271, 55), start_menu)]  # В меню
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                running = menu_sprite.clicked(event.pos)
+        menu_group.update()
+        menu_group.draw(screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 def setup_level(map_file, hero_pos):
     # перемещаем персонажа на старт
     global hero
@@ -338,6 +371,18 @@ def main():
     total_level_height = len(level_map) * 50
     camera = Camera(camera_func, total_level_width, total_level_height)
 
+    # Кнопка паузы
+    pause_group = pygame.sprite.Group()
+
+    pause_btn = Button(func=pause)
+    pause_btn.sprite = pygame.sprite.Sprite(pause_group)
+    pause_btn.sprite.image = pygame.transform.scale(load_image('pause.png'),
+                                                    (50, 50))
+    pause_btn.sprite.rect = pause_btn.sprite.image.get_rect()
+    pause_btn.sprite.rect.x, pause_btn.sprite.rect.y = 20, 20
+    pause_btn.rect = pause_btn.sprite.rect
+    pause_group.update()
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -348,11 +393,15 @@ def main():
             if event.type == pygame.KEYUP:
                 if event.key in HERO_KEYS:
                     hero.stop_motion(event.key)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if pause_btn.click_in_pos(event.pos):
+                    pause_btn.click()
         screen.blit(background, (0, 0))
         all_sprites.update(platforms)
         camera.update(hero)
         for e in all_sprites:
             screen.blit(e.image, camera.apply(e))
+        pause_group.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
