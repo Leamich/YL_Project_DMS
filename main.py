@@ -285,22 +285,16 @@ def menu():
         clock.tick(FPS)
 
 
-def main():
-    global screen
+def setup_level(map_file, hero_pos):
+    # перемещаем персонажа на старт
+    global hero
 
-    pygame.init()
-    screen = pygame.display.set_mode(SIZE)
-    clock = pygame.time.Clock()
-
-    menu()  # запуск меню
+    hero.kill()
+    hero = RoboticHero(*hero_pos)
+    all_sprites.add(hero)
 
     # загрузка уровня
-    level_map = load_level("map.map")
-
-    # группа спрайтов
-    all_sprites = pygame.sprite.Group()
-    hero = RoboticHero(50, 612)
-    hero.add(all_sprites)
+    level_map = load_level(map_file)
 
     # создание уровня
     background = pygame.Surface((750, 500))
@@ -317,6 +311,27 @@ def main():
             x += 50
         y += 50
         x = 0
+
+    return background, platforms, level_map
+
+
+def main():
+    global screen
+    global all_sprites
+    global hero
+
+    pygame.init()
+    screen = pygame.display.set_mode(SIZE)
+    clock = pygame.time.Clock()
+
+    menu()  # запуск меню
+
+    # группа спрайтов
+    all_sprites = pygame.sprite.Group()
+    hero = RoboticHero()
+
+    # установка уровня
+    background, platforms, level_map = setup_level('map.map', (50, 612))
 
     # Камера
     total_level_width = len(level_map[0]) * 50
