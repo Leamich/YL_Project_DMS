@@ -90,13 +90,19 @@ class RoboticHero(AnimatedSprite):
     def stop_motion(self, key):
         """Функция для остановки персонажа (при отжатии клавиши)"""
         if key in (pygame.K_a, pygame.K_LEFT,
-                   pygame.K_d, pygame.K_RIGHT):  # and self.vertical_speed == 0:
+                   pygame.K_d, pygame.K_RIGHT):
             self.horizontal_speed = 0
             self.walk = False
             if self.direction:
                 self.image = self.frames_2[0]
             else:
                 self.image = self.frames[2]
+            keys = pygame.key.get_pressed()  # нажатые клавиши
+            if keys[pygame.K_a] or keys[pygame.K_LEFT]:
+                self.motion(pygame.K_LEFT)  # если зажата левая кнопка
+            elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+                self.motion(pygame.K_RIGHT)  # если зажата правая кнопка
+
 
     # Функция обновления координат персонажа
     def update(self, platforms):
@@ -139,7 +145,79 @@ class RoboticHero(AnimatedSprite):
                     self.vertical_speed = 0
 
 
-# Класс инициализации блоков-платформ
+class Button:
+    """Класс, симулирующий кнопку"""
+
+    def __init__(self, rect=None, func=None):
+        self.rect = rect  # прямоугольник, где находится кнопка
+        self.func = func  # функция при нажатии
+
+    def click_in_pos(self, pos):
+        """
+        Метод возвращает Boolean в зависимости от того,
+        была ли нажата кнопка
+        """
+        if self.rect is None:
+            return False
+
+        x, y = pos
+        if self.rect.x <= x <= self.rect.x + self.rect.w:
+            if self.rect.y <= y <= self.rect.y + self.rect.h:
+                return True
+        return False
+
+    def click(self, returnable=False):
+        """Симуляция нажатия кнопки"""
+        if returnable:
+            return self.func()
+        else:
+            self.func()
+
+
+class Menu(AnimatedSprite):
+    time = 0  # для контроля анимации
+    buttons = [Button(pygame.Rect(72, 97, 203, 61)),  # Старт
+               Button(pygame.Rect(74, 195, 193, 60)),  # Об игре
+               Button(pygame.Rect(70, 285, 201, 61))]  # Выход
+
+    def __init__(self):
+        # загружаем изображение
+        super().__init__(pygame.transform.scale(  # сжимаем изображение
+            load_image('menu_sheet.png'), (750 * 3, 500 * 3)),  # до размеров экрана
+            3, 3, 0, 0)
+
+        # Функции для кнопок
+        self.buttons[0].func = lambda: False
+        self.buttons[1].func = about_game
+        self.buttons[2].func = terminate
+
+    def update(self):
+        self.time += 1  # счётчик для уменьшения скорости анимации
+        # смена кадра 10 раз в секунду (примерно)
+        if self.time % 3 == 0 \
+                and self.cur_frame < len(self.frames) - 1:
+            super().update()
+
+    def get_button(self, pos):
+        """
+        По позиции клика определяет какая была нажата кнопка
+        Если кнопка не была нажата возвращает None
+        """
+        for btn in self.buttons:
+            if btn.click_in_pos(pos):
+                return btn
+        return Button(func=lambda: True)
+
+    def get_func(self, btn):
+        """По экземпляру кнопки запускает её функцию"""
+        return btn.click(returnable=True)
+
+    def clicked(self, pos):
+        """Обработка нажатия кнопки"""
+        btn = self.get_button(pos)
+        return self.get_func(btn)
+
+
 class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y, black):
         super().__init__()
@@ -212,10 +290,26 @@ def terminate():
     sys.exit()
 
 
-# Основная функция
-def main():
-    pygame.init()
-    screen = pygame.display.set_mode(SIZE)
+def about_game():
+    font = pygame.font.Font(None, 30)
+    texts = list()
+    for i in ('Portal 2D',
+              'Авторы:',
+              'Дамир Сагитов',
+              'Леонтьев Михаил',
+              'Сергей Голышев'):
+        texts.append(font.render(i, True, (0, 0, 0)))
+    for i, j in enumerate(texts):
+        menu_sprite.image.blit(j, (400, 200 + i * 20))
+    return True
+
+
+def menu():
+    global menu_sprite
+
+    menu_sprite = Menu()
+    menu_group = pygame.sprite.Group()
+    menu_sprite.add(menu_group)
     clock = pygame.time.Clock()
     pygame.display.set_caption("Portal 2D")
 
@@ -224,18 +318,66 @@ def main():
     bg = pygame.transform.scale(bg, (850, 500))
     bd_rect = bg.get_rect()
 
-    # загрузка уровня
-    level_map = load_level("map.map")
-    screen.blit(bg, bd_rect)
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                running = menu_sprite.clicked(event.pos)
+        menu_group.update()
+        menu_group.draw(screen)
+        pygame.display.flip()
+        clock.tick(FPS)
 
-    # группа спрайтов
-    all_sprites = pygame.sprite.Group()
-    hero = RoboticHero(50, 912)
-    hero.add(all_sprites)
+
+def pause():
+    def start_menu():  # запуск меню для кнопки
+        menu()
+        return False
+
+    clock = pygame.time.Clock()
+
+    # инициализация меню
+    menu_group = pygame.sprite.Group()
+    menu_sprite = Menu()
+    menu_sprite.add(menu_group)
+    menu_sprite.frames = tuple()
+    im = load_image('menu_pause.png')
+    menu_sprite.image = pygame.transform.scale(im,
+                                               (im.get_width() // 8,
+                                                im.get_height() // 8))
+    menu_sprite.rect = menu_sprite.image.get_rect()
+    menu_sprite.rect.x, menu_sprite.rect.y = 200, 150
+    menu_sprite.buttons = [Button(pygame.Rect(246, 174, 276, 51), lambda: False),  # Продолжить
+                           Button(pygame.Rect(253, 269, 271, 55), start_menu)]  # В меню
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                running = menu_sprite.clicked(event.pos)
+        menu_group.update()
+        menu_group.draw(screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def setup_level(map_file, hero_pos):
+    # перемещаем персонажа на старт
+    global hero
+
+    hero.kill()
+    hero = RoboticHero(*hero_pos)
+    all_sprites.add(hero)
+
+    # загрузка уровня
+    level_map = load_level(map_file)
 
     # создание уровня
     background = pygame.Surface((750, 500))
-    background.fill((0, 0, 0))
+    background.fill((75, 155, 200))
     platforms = []
     x = 0
     y = 0
@@ -255,12 +397,44 @@ def main():
         y += 50
         x = 0
 
+    return background, platforms, level_map
+
+
+def main():
+    global screen
+    global all_sprites
+    global hero
+
+    pygame.init()
+    screen = pygame.display.set_mode(SIZE)
+    clock = pygame.time.Clock()
+
+    menu()  # запуск меню
+
+    # группа спрайтов
+    all_sprites = pygame.sprite.Group()
+    hero = RoboticHero()
+
+    # установка уровня
+    background, platforms, level_map = setup_level('map.map', (50, 612))
+
     # Камера
     total_level_width = len(level_map[0]) * 50
     total_level_height = len(level_map) * 50
     camera = Camera(camera_func, total_level_width, total_level_height)
 
-    # Основной цикл
+    # Кнопка паузы
+    pause_group = pygame.sprite.Group()
+
+    pause_btn = Button(func=pause)
+    pause_btn.sprite = pygame.sprite.Sprite(pause_group)
+    pause_btn.sprite.image = pygame.transform.scale(load_image('pause.png'),
+                                                    (50, 50))
+    pause_btn.sprite.rect = pause_btn.sprite.image.get_rect()
+    pause_btn.sprite.rect.x, pause_btn.sprite.rect.y = 20, 20
+    pause_btn.rect = pause_btn.sprite.rect
+    pause_group.update()
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -271,12 +445,17 @@ def main():
             if event.type == pygame.KEYUP:
                 if event.key in HERO_KEYS:
                     hero.stop_motion(event.key)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if pause_btn.click_in_pos(event.pos):
+                    pause_btn.click()
         screen.blit(background, (0, 0))
+
         screen.blit(bg, bd_rect)
         all_sprites.update(platforms)
         camera.update(hero)
         for e in all_sprites:
             screen.blit(e.image, camera.apply(e))
+        pause_group.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
