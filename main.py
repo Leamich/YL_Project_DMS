@@ -68,9 +68,15 @@ class RoboticHero(AnimatedSprite):
     def stop_motion(self, key):
         """Функция для остановки персонажа (при отжатии клавиши)"""
         if key in (pygame.K_a, pygame.K_LEFT,
-                   pygame.K_d, pygame.K_RIGHT):  # and self.vertical_speed == 0:
+                   pygame.K_d, pygame.K_RIGHT):
             self.horizontal_speed = 0
             self.walk = False
+
+            keys = pygame.key.get_pressed()  # нажатые клавиши
+            if keys[pygame.K_a] or keys[pygame.K_LEFT]:
+                self.motion(pygame.K_LEFT)  # если зажата левая кнопка
+            elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+                self.motion(pygame.K_RIGHT)  # если зажата правая кнопка
 
     def update(self, platforms):
         self.on_ground = False
