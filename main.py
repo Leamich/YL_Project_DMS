@@ -2,6 +2,7 @@ import pygame
 import os
 import sys
 
+# Константы
 FPS = 30
 SIZE = (750, 500)
 HERO_FALL_SPEED = 100
@@ -11,6 +12,7 @@ HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
 
+# Класс анимации
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
         super().__init__()
@@ -31,7 +33,6 @@ class AnimatedSprite(pygame.sprite.Sprite):
                 frame_location = (self.rect.w * i, self.rect.h * j)
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
-        print(len(self.frames))
 
     def cut_sheet_2(self, sheet, columns, rows):
         columns = columns // 2
@@ -48,6 +49,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
 
 
+# Основной класс персонажа
 class RoboticHero(AnimatedSprite):
     """
     Класс для игрока
@@ -65,7 +67,7 @@ class RoboticHero(AnimatedSprite):
         self.horizontal_speed = 0  # если > 0 - идёт вправо, < 0 - влево
         self.vertical_speed = 0  # если < 0 - вверх, > 0 - вниз
         self.x, self.y = self.rect.x, self.rect.y
-
+    
     def motion(self, key):
         """
         Функция для управления персонажем.
@@ -93,6 +95,7 @@ class RoboticHero(AnimatedSprite):
             else:
                 self.image = self.frames[2]
 
+    # Функция обновления координат персонажа
     def update(self, platforms):
         if self.walk:
             if self.horizontal_speed > 0:
@@ -114,7 +117,7 @@ class RoboticHero(AnimatedSprite):
         self.y = self.rect.y
         if not self.on_ground:
             self.vertical_speed += HERO_FALL_SPEED
-
+     
     def fix_collides(self, xvel, yvel, platforms):
         """Защита от наскоков (в дальнейшем будет дополняться)"""
         for pl in platforms:
@@ -133,6 +136,7 @@ class RoboticHero(AnimatedSprite):
                     self.vertical_speed = 0
 
 
+# Класс инициализации блоков-платформ
 class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y, black):
         super().__init__()
@@ -146,6 +150,7 @@ class Platform(pygame.sprite.Sprite):
         self.rect.y = y
 
 
+# Функция загрузки уровня
 def load_level(filename):
     filename = "data/" + filename
     with open(filename, 'r') as mapFile:
@@ -154,6 +159,7 @@ def load_level(filename):
     return list(map(lambda x: list(x.ljust(max_width, '.')), level_map))
 
 
+# Я не понял зачем эта функция
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
@@ -183,6 +189,7 @@ class Camera:
         self.state = self.camera_func(self.state, target.rect)
 
 
+# Функция для координат камеры
 def camera_func(camera, target_rect):
     l = -target_rect.x + SIZE[0] / 2.24
     t = -target_rect.y + SIZE[1] / 2.24
@@ -196,11 +203,13 @@ def camera_func(camera, target_rect):
     return pygame.Rect(l, t, w, h)
 
 
+# Функция закрытия приложения
 def terminate():
     pygame.quit()
     sys.exit()
 
 
+# Основная функция
 def main():
     pygame.init()
     screen = pygame.display.set_mode(SIZE)
@@ -248,6 +257,7 @@ def main():
     total_level_height = len(level_map) * 50
     camera = Camera(camera_func, total_level_width, total_level_height)
 
+    # Основной цикл
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
