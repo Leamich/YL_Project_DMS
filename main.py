@@ -15,22 +15,36 @@ class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
         super().__init__()
         self.frames = []
+        self.frames_2 = []
         self.cut_sheet(sheet, columns, rows)
+        self.cut_sheet_2(sheet, columns, rows)
         self.cur_frame = 0
-        self.image = self.frames[self.cur_frame]
+        self.image = self.frames_2[self.cur_frame]
         self.rect = self.rect.move(x, y)
 
     def cut_sheet(self, sheet, columns, rows):
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+        columns = columns // 2
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
                                 sheet.get_height() // rows)
         for j in range(rows):
             for i in range(columns):
                 frame_location = (self.rect.w * i, self.rect.h * j)
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
+        print(len(self.frames))
+
+    def cut_sheet_2(self, sheet, columns, rows):
+        columns = columns // 2
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * (i + 3), self.rect.h * j)
+                self.frames_2.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
 
     def update(self):
-        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.cur_frame = (self.cur_frame + 1) % 6  # len(self.frames)
         self.image = self.frames[self.cur_frame]
 
 
@@ -39,13 +53,14 @@ class RoboticHero(AnimatedSprite):
     Класс для игрока
     х и у - координаты места первого появления персонажа
     """
-
     def __init__(self, x=0, y=0):
-        img = load_image('robot_steps.png')
+        img = load_image('robot_steps_6.png')
         super().__init__(pygame.transform.scale(
             img, (img.get_width() // 3, img.get_height() // 3)),
-            3, 1, x, y)
+            6, 1, x, y)
+        self.direction = True
         self.on_ground = True
+        self.bool = True
         self.walk = False  # идёт ли персонаж (для анимации)
         self.horizontal_speed = 0  # если > 0 - идёт вправо, < 0 - влево
         self.vertical_speed = 0  # если < 0 - вверх, > 0 - вниз
@@ -57,7 +72,9 @@ class RoboticHero(AnimatedSprite):
         Принимает нажатую клавишу.
         """
         if key in (pygame.K_w, pygame.K_UP):  # прыжок
-            self.vertical_speed = HERO_JUMP_SPEED
+            if self.bool:
+                self.vertical_speed = HERO_JUMP_SPEED
+                self.bool = False
         if key in (pygame.K_a, pygame.K_LEFT):
             self.horizontal_speed = -HERO_RUN_SPEED
             self.walk = True
@@ -71,8 +88,21 @@ class RoboticHero(AnimatedSprite):
                    pygame.K_d, pygame.K_RIGHT):  # and self.vertical_speed == 0:
             self.horizontal_speed = 0
             self.walk = False
+            if self.direction:
+                self.image = self.frames_2[0]
+            else:
+                self.image = self.frames[2]
 
     def update(self, platforms):
+        if self.walk:
+            if self.horizontal_speed > 0:
+                self.direction = True
+                self.cur_frame = (self.cur_frame + 1) % 3
+                self.image = self.frames_2[self.cur_frame]
+            elif self.horizontal_speed < 0:
+                self.direction = False
+                self.cur_frame = (self.cur_frame + 1) % 3
+                self.image = self.frames[self.cur_frame]
         self.on_ground = False
         self.y += self.vertical_speed / FPS
         self.rect.y = int(self.y)
@@ -82,10 +112,6 @@ class RoboticHero(AnimatedSprite):
         self.fix_collides(self.horizontal_speed, 0, platforms)
         self.x = self.rect.x
         self.y = self.rect.y
-        # self.rect.x, self.rect.y = int(self.x), int(self.y)
-        if self.walk:
-            self.cur_frame = (self.cur_frame + 1) % 3
-            self.image = self.frames[self.cur_frame]
         if not self.on_ground:
             self.vertical_speed += HERO_FALL_SPEED
 
@@ -101,16 +127,19 @@ class RoboticHero(AnimatedSprite):
                     self.rect.bottom = (pl.rect.top - 1)
                     self.on_ground = True
                     self.vertical_speed = 0
+                    self.bool = True
                 if yvel < 0:
                     self.rect.top = pl.rect.bottom
                     self.vertical_speed = 0
 
 
-
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, black):
         super().__init__()
-        image = pygame.image.load('data/black_block.jpg')
+        if black:
+            image = pygame.image.load('data/black_block.jpg')
+        else:
+            image = pygame.image.load('data/white_block.jpg')
         self.image = pygame.transform.scale(image, (50, 50))
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -176,25 +205,38 @@ def main():
     pygame.init()
     screen = pygame.display.set_mode(SIZE)
     clock = pygame.time.Clock()
+    pygame.display.set_caption("Portal 2D")
+
+    # Фон
+    bg = pygame.image.load('data/Portal_fon.jpg')
+    bg = pygame.transform.scale(bg, (850, 500))
+    bd_rect = bg.get_rect()
 
     # загрузка уровня
     level_map = load_level("map.map")
+    screen.blit(bg, bd_rect)
 
     # группа спрайтов
     all_sprites = pygame.sprite.Group()
-    hero = RoboticHero(50, 612)
+    hero = RoboticHero(50, 912)
     hero.add(all_sprites)
 
     # создание уровня
     background = pygame.Surface((750, 500))
-    background.fill((75, 155, 200))
+    background.fill((0, 0, 0))
     platforms = []
     x = 0
     y = 0
     for row in level_map:
         for col in row:
             if col == '-':
-                pl = Platform(x, y)
+                black = True
+                pl = Platform(x, y, black)
+                all_sprites.add(pl)
+                platforms.append(pl)
+            elif col == '=':
+                black = False
+                pl = Platform(x, y, black)
                 all_sprites.add(pl)
                 platforms.append(pl)
             x += 50
@@ -217,6 +259,7 @@ def main():
                 if event.key in HERO_KEYS:
                     hero.stop_motion(event.key)
         screen.blit(background, (0, 0))
+        screen.blit(bg, bd_rect)
         all_sprites.update(platforms)
         camera.update(hero)
         for e in all_sprites:
