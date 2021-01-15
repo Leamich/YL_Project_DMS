@@ -146,6 +146,25 @@ class RoboticHero(AnimatedSprite):
                     self.vertical_speed = 0
 
 
+class Portal(pygame.sprite.Sprite):
+    def __init__(self, pos, platforms):
+        super().__init__()
+        x = pos[0] - 25
+        y = pos[1] + 450
+        image = pygame.image.load('data/portal.png')
+        self.image = pygame.transform.scale(image, (50, 100))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.is_collide(platforms)
+
+    def is_collide(self, platforms):
+        for pl in platforms:
+            if pygame.sprite.collide_rect(self, pl):
+                self.rect.left = pl.rect.left
+                self.rect.top = pl.rect.top
+
+
 class Button:
     """Класс, симулирующий кнопку"""
 
@@ -448,6 +467,9 @@ def main():
                 if event.key in HERO_KEYS:
                     hero.stop_motion(event.key)
             if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    portal = Portal(event.pos, platforms)
+                    all_sprites.add(portal)
                 if pause_btn.click_in_pos(event.pos):
                     pause_btn.click()
         screen.blit(background, (0, 0))
