@@ -219,6 +219,28 @@ class Menu(AnimatedSprite):
         return self.get_func(btn)
 
 
+class PauseMenu(Menu):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+
+        def start_menu():  # запуск меню для кнопки
+            menu()
+            return False
+
+        im = load_image('menu_pause.png')
+        self.image =\
+            pygame.transform.scale(im,
+                                   (im.get_width() // 8,
+                                    im.get_height() // 8))
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = 200, 150
+        self.buttons = [Button(pygame.Rect(246, 174, 276, 51), lambda: False),  # Продолжить
+                        Button(pygame.Rect(253, 269, 271, 55), start_menu)]  # В меню
+
+    def update(self):
+        pygame.sprite.Sprite.update(self)
+
+
 class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y, black):
         super().__init__()
@@ -327,25 +349,13 @@ def menu():
 
 
 def pause():
-    def start_menu():  # запуск меню для кнопки
-        menu()
-        return False
-
     clock = pygame.time.Clock()
 
     # инициализация меню
     menu_group = pygame.sprite.Group()
-    menu_sprite = Menu()
-    menu_sprite.add(menu_group)
-    menu_sprite.frames = tuple()
-    im = load_image('menu_pause.png')
-    menu_sprite.image = pygame.transform.scale(im,
-                                               (im.get_width() // 8,
-                                                im.get_height() // 8))
-    menu_sprite.rect = menu_sprite.image.get_rect()
-    menu_sprite.rect.x, menu_sprite.rect.y = 200, 150
-    menu_sprite.buttons = [Button(pygame.Rect(246, 174, 276, 51), lambda: False),  # Продолжить
-                           Button(pygame.Rect(253, 269, 271, 55), start_menu)]  # В меню
+    menu_sprite = PauseMenu()
+    menu_group.add(menu_sprite)
+
     running = True
     while running:
         for event in pygame.event.get():
