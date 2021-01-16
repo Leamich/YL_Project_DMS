@@ -21,11 +21,11 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.cut_sheet_left(sheet, columns, rows)
         self.cut_sheet_right(sheet, columns, rows)
         self.cur_frame = 0
-        self.image = self.frames_left[self.cur_frame]
+        self.image = self.frames_right[self.cur_frame]
         self.rect = self.rect.move(x, y)
 
     # Обрезка картинки для анимации движения влево
-    def cut_sheet_left(self, sheet, columns, rows):
+    def cut_sheet_right(self, sheet, columns, rows):
         columns_full = columns
         columns = columns // 2
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns_full,
@@ -33,24 +33,24 @@ class AnimatedSprite(pygame.sprite.Sprite):
         for j in range(rows):
             for i in range(columns):
                 frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames_left.append(sheet.subsurface(pygame.Rect(
+                self.frames_right.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
     # Обрезка картинки для анимации движения вправо
-    def cut_sheet_right(self, sheet, columns, rows):
+    def cut_sheet_left(self, sheet, columns, rows):
         columns = columns // 2
         self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
                                 sheet.get_height() // rows)
         for j in range(rows):
             for i in range(columns):
                 frame_location = (self.rect.w * (i + 3), self.rect.h * j)
-                self.frames_right.append(sheet.subsurface(pygame.Rect(
+                self.frames_left.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
     # Обновление анимации
     def update(self):
-        self.cur_frame = (self.cur_frame + 1) % 6  # len(self.frames)
-        self.image = self.frames_left[self.cur_frame]
+        self.cur_frame = (self.cur_frame + 1) % 9
+        self.image = self.frames_right[self.cur_frame]
 
 
 # Основной класс персонажа
@@ -61,7 +61,7 @@ class RoboticHero(AnimatedSprite):
     """
 
     def __init__(self, x=0, y=0):
-        img = load_image('robot_steps_6.png')
+        img = load_image('robot_steps.png')
         super().__init__(pygame.transform.scale(
             img, (img.get_width() // 3, img.get_height() // 3)),
             6, 1, x, y)
@@ -196,7 +196,7 @@ class Menu(AnimatedSprite):
         self.time += 1  # счётчик для уменьшения скорости анимации
         # смена кадра 10 раз в секунду (примерно)
         if self.time % 3 == 0 \
-                and self.cur_frame < len(self.frames_left) - 1:
+                and self.cur_frame < len(self.frames_right) - 1:
             super().update()
 
     def get_button(self, pos):
