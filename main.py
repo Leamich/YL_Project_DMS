@@ -7,7 +7,7 @@ FPS = 30
 SIZE = (750, 500)
 HERO_FALL_SPEED = 100
 HERO_JUMP_SPEED = -800
-HERO_RUN_SPEED = 175
+HERO_RUN_SPEED = 180
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
@@ -68,7 +68,7 @@ class RoboticHero(AnimatedSprite):
         super().__init__(pygame.transform.scale(
             img, (img.get_width() // 3, img.get_height() // 3)),
             6, 1, x, y)
-        self.tp_coords = [(350, 864), (970, 64)]
+        self.tp_coords = [(350, 864), (970, 64), (1900, 864)]
         self.direction = True
         self.on_ground = True
         self.bool = True
@@ -131,7 +131,7 @@ class RoboticHero(AnimatedSprite):
         self.y = self.rect.y
         if not self.on_ground:
             self.vertical_speed += HERO_FALL_SPEED
-        if self.x == self.tp_coords[0][0] and self.y == self.tp_coords[0][1]:
+        if self.x == self.tp_coords[numb - 1][0] and self.y == self.tp_coords[numb - 1][1]:
             next_level()
 
     def fix_collides(self, xvel, yvel):
@@ -153,7 +153,10 @@ class RoboticHero(AnimatedSprite):
 
 
 def next_level():
-    main()
+    if numb != 2:
+        main()
+    else:
+
 
 
 class Button:
@@ -429,8 +432,8 @@ def main():
     global platforms
     global numb
 
-    level = ['map.map', 'map2.map']
-    hero_coords = [(50, 864), (1700, 64)]
+    level = ['map.map', 'map2.map', 'map3.map']
+    hero_coords = [(50, 864), (1700, 64), (1000, 864)]
 
     pygame.init()
     screen = pygame.display.set_mode(SIZE)
