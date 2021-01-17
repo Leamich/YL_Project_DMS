@@ -7,7 +7,7 @@ FPS = 30
 SIZE = (750, 500)
 HERO_FALL_SPEED = 100
 HERO_JUMP_SPEED = -800
-HERO_RUN_SPEED = 180
+HERO_RUN_SPEED = 175
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
@@ -131,9 +131,8 @@ class RoboticHero(AnimatedSprite):
         self.y = self.rect.y
         if not self.on_ground:
             self.vertical_speed += HERO_FALL_SPEED
-        if self.x == 350 and self.y == 864:
+        if self.x == self.tp_coords[0][0] and self.y == self.tp_coords[0][1]:
             next_level()
-        print(self.x, self.y)
 
     def fix_collides(self, xvel, yvel):
         """Защита от наскоков (в дальнейшем будет дополняться)"""
