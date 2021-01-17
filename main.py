@@ -7,9 +7,12 @@ FPS = 30
 SIZE = (750, 500)
 HERO_FALL_SPEED = 100
 HERO_JUMP_SPEED = -800
-HERO_RUN_SPEED = 150
+HERO_RUN_SPEED = 180
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
+
+# Переменные
+numb = 0
 
 
 # Класс анимации персонажа и меню
@@ -65,6 +68,7 @@ class RoboticHero(AnimatedSprite):
         super().__init__(pygame.transform.scale(
             img, (img.get_width() // 3, img.get_height() // 3)),
             6, 1, x, y)
+        self.tp_coords = [(350, 864), (970, 64)]
         self.direction = True
         self.on_ground = True
         self.bool = True
@@ -127,6 +131,9 @@ class RoboticHero(AnimatedSprite):
         self.y = self.rect.y
         if not self.on_ground:
             self.vertical_speed += HERO_FALL_SPEED
+        if self.x == 350 and self.y == 864:
+            next_level()
+        print(self.x, self.y)
 
     def fix_collides(self, xvel, yvel):
         """Защита от наскоков (в дальнейшем будет дополняться)"""
@@ -144,6 +151,10 @@ class RoboticHero(AnimatedSprite):
                 if yvel < 0:
                     self.rect.top = pl.rect.bottom
                     self.vertical_speed = 0
+
+
+def next_level():
+    main()
 
 
 class Button:
@@ -242,12 +253,14 @@ class PauseMenu(Menu):
 
 
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y, black):
+    def __init__(self, x, y, block):
         super().__init__()
-        if black:
+        if block == 1:
             image = pygame.image.load('data/black_block.jpg')
-        else:
+        elif block == 2:
             image = pygame.image.load('data/white_block.jpg')
+        elif block == 3:
+            image = pygame.image.load('data/translevelblock.jpg')
         self.image = pygame.transform.scale(image, (50, 50))
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -319,7 +332,7 @@ def about_game():
     for i in ('Portal 2D',
               'Авторы:',
               'Дамир Сагитов',
-              'Леонтьев Михаил',
+              'Михаил Леонтьев',
               'Сергей Голышев'):
         texts.append(font.render(i, True, (0, 0, 0)))
     for i, j in enumerate(texts):
@@ -389,13 +402,18 @@ def setup_level(map_file, hero_pos):
     for row in level_map:
         for col in row:
             if col == '-':
-                black = True
-                pl = Platform(x, y, black)
+                block = 1
+                pl = Platform(x, y, block)
                 all_sprites.add(pl)
                 platforms.append(pl)
             elif col == '=':
-                black = False
-                pl = Platform(x, y, black)
+                block = 2
+                pl = Platform(x, y, block)
+                all_sprites.add(pl)
+                platforms.append(pl)
+            elif col == '+':
+                block = 3
+                pl = Platform(x, y, block)
                 all_sprites.add(pl)
                 platforms.append(pl)
             x += 50
@@ -410,20 +428,25 @@ def main():
     global all_sprites
     global hero
     global platforms
+    global numb
+
+    level = ['map.map', 'map2.map']
+    hero_coords = [(50, 864), (1700, 64)]
 
     pygame.init()
     screen = pygame.display.set_mode(SIZE)
     clock = pygame.time.Clock()
     pygame.display.set_caption("Portal 2D")
-
-    menu()  # запуск меню
+    if numb == 0:
+        menu()  # запуск меню
 
     # группа спрайтов
     all_sprites = pygame.sprite.Group()
     hero = RoboticHero()
 
     # установка уровня
-    background, platforms, level_map = setup_level('map.map', (50, 822))
+    background, platforms, level_map = setup_level(level[numb], hero_coords[numb])
+    numb += 1
 
     # Фон
     bg = pygame.image.load('data/Portal_fon.jpg')
