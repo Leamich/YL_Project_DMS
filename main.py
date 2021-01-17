@@ -64,7 +64,7 @@ class RoboticHero(AnimatedSprite):
     """
 
     def __init__(self, x=0, y=0):
-        img = load_image('robot_steps.png')
+        img = load_image('robot_steps_6.png')
         super().__init__(pygame.transform.scale(
             img, (img.get_width() // 3, img.get_height() // 3)),
             6, 1, x, y)
@@ -113,13 +113,13 @@ class RoboticHero(AnimatedSprite):
     def update(self):
         if self.walk:
             if self.horizontal_speed > 0:
-                self.direction = True
-                self.cur_frame = (self.cur_frame + 1) % 3
-                self.image = self.frames_2[self.cur_frame]
-            elif self.horizontal_speed < 0:
                 self.direction = False
                 self.cur_frame = (self.cur_frame + 1) % 3
                 self.image = self.frames[self.cur_frame]
+            elif self.horizontal_speed < 0:
+                self.direction = True
+                self.cur_frame = (self.cur_frame + 1) % 3
+                self.image = self.frames_2[self.cur_frame]
         self.on_ground = False
         self.y += self.vertical_speed / FPS
         self.rect.y = int(self.y)
