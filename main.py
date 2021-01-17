@@ -53,6 +53,106 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.image = self.frames_2[self.cur_frame]
 
 
+class Portal(pygame.sprite.Sprite):
+    def __init__(self, sheet):
+        super().__init__()
+        self.frames = list()
+        self.cut_sheet(sheet, 5, 1)
+        self.cur_frame = 0
+        self.image = self.frames[0]
+        self.visible = False
+        self.time = 0
+        self.is_opening = False
+        self.start_animation = self.frames[:2]
+        self.stay_animation = self.frames[2:]
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def place_portal(self, x, y):
+        self.rect.x, self.rect.y = x - 10, y
+        self.visible = True
+        self.frames = self.start_animation
+        self.cur_frame = 0
+        self.is_opening = True
+
+    def destroy_portal(self):
+        self.visible = False
+
+    def update(self):
+        self.time += 1
+        if self.time % 5 == 0:
+            self.time = 0
+            if self.is_opening:
+                self.cur_frame += 1
+                if self.cur_frame == len(self.frames):
+                    self.is_opening = False
+                    self.frames = self.stay_animation
+                    self.cur_frame = 0
+            else:
+                self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+            self.image = self.frames[self.cur_frame]
+
+
+class PortalAlias(pygame.sprite.Group):
+    def __init__(self):
+        super().__init__()
+        im = load_image('portal_blueorange.png')
+        im = pygame.transform.scale(im, (int(im.get_width() // 3.5),
+                                         im.get_height() // 3))
+        self.orange_portal = Portal(im.subsurface(0, 0,
+                                                  im.get_width(),
+                                                  im.get_height() // 2))
+        self.blue_portal = Portal(im.subsurface(0,
+                                                im.get_height() // 2,
+                                                im.get_width(),
+                                                im.get_height() // 2))
+        self.add(self.orange_portal, self.blue_portal)
+
+    def generate_portal_pos(self, click_pos):
+        click_pl = get_platform(click_pos)
+        if click_pl is None:
+            return None
+
+        up_pl = get_platform((click_pl.rect.x, click_pl.rect.y - 1))
+        if up_pl is not None:
+            return up_pl.rect.x, up_pl.rect.y
+
+        down_pl = get_platform((click_pl.rect.x,
+                                click_pl.rect.y + click_pl.rect.h - 1))
+        if down_pl is None:
+            return None
+        return click_pl.rect.x, click_pl.rect.y
+
+    def add_portal(self, event):
+        portal_pos = self.generate_portal_pos(event.pos)
+        print(portal_pos)
+        if portal_pos is None:
+            return
+
+        if event.button == 1:
+            self.blue_portal.place_portal(*portal_pos)
+        elif event.button == 3:
+            self.orange_portal.place_portal(*portal_pos)
+
+    def update(self):
+        if self.blue_portal.visible:
+            all_sprites.add(self.blue_portal)
+        else:
+            all_sprites.add(self.blue_portal)
+
+        if self.orange_portal.visible:
+            all_sprites.add(self.orange_portal)
+        else:
+            all_sprites.add(self.orange_portal)
+
+
 # Основной класс персонажа
 class RoboticHero(AnimatedSprite):
     """
@@ -228,7 +328,7 @@ class PauseMenu(Menu):
             return False
 
         im = load_image('menu_pause.png')
-        self.image =\
+        self.image = \
             pygame.transform.scale(im,
                                    (im.get_width() // 8,
                                     im.get_height() // 8))
@@ -405,11 +505,22 @@ def setup_level(map_file, hero_pos):
     return background, platforms, level_map
 
 
+def get_platform(pos):
+    x, y = pos
+    for pl in platforms:
+        new_rect = pl.rect
+        if new_rect.x <= x <= new_rect.x + new_rect.w:
+            if new_rect.y <= y <= new_rect.y + new_rect.h:
+                return pl
+    return None
+
+
 def main():
     global screen
     global all_sprites
     global hero
     global platforms
+    global camera
 
     pygame.init()
     screen = pygame.display.set_mode(SIZE)
@@ -447,6 +558,8 @@ def main():
     pause_btn.rect = pause_btn.sprite.rect
     pause_group.update()
 
+    portals = PortalAlias()
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -461,7 +574,11 @@ def main():
                 if pause_btn.click_in_pos(event.pos):
                     pause_btn.click()
                     hero.stop_motion(pygame.K_RIGHT)
+                else:
+                    portals.add_portal(event)
         screen.blit(background, (0, 0))
+
+        portals.update()
 
         screen.blit(bg, bd_rect)
         all_sprites.update()
