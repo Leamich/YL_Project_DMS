@@ -16,16 +16,27 @@ HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
         super().__init__()
-        self.frames_left = []
-        self.frames_right = []
-        self.cut_sheet_left(sheet, columns, rows)
-        self.cut_sheet_right(sheet, columns, rows)
+        self.frames = []
+        self.frames_2 = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cut_sheet_2(sheet, columns, rows)
         self.cur_frame = 0
-        self.image = self.frames_right[self.cur_frame]
+        self.image = self.frames_2[self.cur_frame]
         self.rect = self.rect.move(x, y)
 
     # Обрезка картинки для анимации движения влево
-    def cut_sheet_right(self, sheet, columns, rows):
+    def cut_sheet(self, sheet, columns, rows):
+        columns = columns // 2
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * (i + 3), self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    # Обрезка картинки для анимации движения вправо
+    def cut_sheet_2(self, sheet, columns, rows):
         columns_full = columns
         columns = columns // 2
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns_full,
@@ -33,24 +44,13 @@ class AnimatedSprite(pygame.sprite.Sprite):
         for j in range(rows):
             for i in range(columns):
                 frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames_right.append(sheet.subsurface(pygame.Rect(
-                    frame_location, self.rect.size)))
-
-    # Обрезка картинки для анимации движения вправо
-    def cut_sheet_left(self, sheet, columns, rows):
-        columns = columns // 2
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * (i + 3), self.rect.h * j)
-                self.frames_left.append(sheet.subsurface(pygame.Rect(
+                self.frames_2.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
     # Обновление анимации
     def update(self):
-        self.cur_frame = (self.cur_frame + 1) % 9
-        self.image = self.frames_right[self.cur_frame]
+        self.cur_frame = (self.cur_frame + 1) % 9  # len(self.frames)
+        self.image = self.frames_2[self.cur_frame]
 
 
 # Основной класс персонажа
@@ -96,9 +96,9 @@ class RoboticHero(AnimatedSprite):
             self.horizontal_speed = 0
             self.walk = False
             if self.direction:
-                self.image = self.frames_right[0]
+                self.image = self.frames_2[0]
             else:
-                self.image = self.frames_left[2]
+                self.image = self.frames[2]
             keys = pygame.key.get_pressed()  # нажатые клавиши
             if keys[pygame.K_a] or keys[pygame.K_LEFT]:
                 self.motion(pygame.K_LEFT)  # если зажата левая кнопка
@@ -111,11 +111,11 @@ class RoboticHero(AnimatedSprite):
             if self.horizontal_speed > 0:
                 self.direction = True
                 self.cur_frame = (self.cur_frame + 1) % 3
-                self.image = self.frames_right[self.cur_frame]
+                self.image = self.frames_2[self.cur_frame]
             elif self.horizontal_speed < 0:
                 self.direction = False
                 self.cur_frame = (self.cur_frame + 1) % 3
-                self.image = self.frames_left[self.cur_frame]
+                self.image = self.frames[self.cur_frame]
         self.on_ground = False
         self.y += self.vertical_speed / FPS
         self.rect.y = int(self.y)
@@ -196,7 +196,7 @@ class Menu(AnimatedSprite):
         self.time += 1  # счётчик для уменьшения скорости анимации
         # смена кадра 10 раз в секунду (примерно)
         if self.time % 3 == 0 \
-                and self.cur_frame < len(self.frames_right) - 1:
+                and self.cur_frame < len(self.frames) - 1:
             super().update()
 
     def get_button(self, pos):
@@ -450,8 +450,7 @@ def main():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if pause_btn.click_in_pos(event.pos):
                     pause_btn.click()
-                    event.key = pygame.K_RIGHT
-                    hero.stop_motion(event.key)
+                    hero.stop_motion(pygame.K_RIGHT)
         screen.blit(background, (0, 0))
 
         screen.blit(bg, bd_rect)
