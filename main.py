@@ -68,7 +68,7 @@ class RoboticHero(AnimatedSprite):
         super().__init__(pygame.transform.scale(
             img, (img.get_width() // 3, img.get_height() // 3)),
             6, 1, x, y)
-        self.tp_coords = [(350, 864), (970, 64), (1900, 864)]
+        self.tp_coords = [(350, 864), (970, 64), (1870, 864)]
         self.direction = True
         self.on_ground = True
         self.bool = True
@@ -153,10 +153,10 @@ class RoboticHero(AnimatedSprite):
 
 
 def next_level():
-    if numb != 2:
+    if numb != 3:
         main()
     else:
-
+        pause(restart_menu=True)
 
 
 class Button:
@@ -233,14 +233,17 @@ class Menu(AnimatedSprite):
 
 
 class PauseMenu(Menu):
-    def __init__(self):
+    def __init__(self, restart_menu=False):
         pygame.sprite.Sprite.__init__(self)
 
         def start_menu():  # запуск меню для кнопки
             menu()
             return False
 
-        im = load_image('menu_pause.png')
+        if restart_menu:
+            im = load_image('restart_menu.png')
+        else:
+            im = load_image('menu_pause.png')
         self.image =\
             pygame.transform.scale(im,
                                    (im.get_width() // 8,
@@ -363,12 +366,12 @@ def menu():
         clock.tick(FPS)
 
 
-def pause():
+def pause(restart_menu=False):
     clock = pygame.time.Clock()
 
     # инициализация меню
     menu_group = pygame.sprite.Group()
-    menu_sprite = PauseMenu()
+    menu_sprite = PauseMenu(restart_menu=restart_menu)
     menu_group.add(menu_sprite)
 
     running = True
