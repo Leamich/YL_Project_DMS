@@ -250,8 +250,11 @@ class PauseMenu(Menu):
                                     im.get_height() // 8))
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = 200, 150
-        self.buttons = [Button(pygame.Rect(246, 174, 276, 51), lambda: False),  # Продолжить
-                        Button(pygame.Rect(253, 269, 271, 55), start_menu)]  # В меню
+        if restart_menu:
+            self.buttons = [Button(pygame.Rect(253, 269, 271, 55), start_menu)]  # В меню
+        else:
+            self.buttons = [Button(pygame.Rect(246, 174, 276, 51), lambda: False),  # Продолжить
+                            Button(pygame.Rect(253, 269, 271, 55), start_menu)]  # В меню
 
     def update(self):
         pygame.sprite.Sprite.update(self)
@@ -435,6 +438,7 @@ def main():
     global platforms
     global numb
 
+    fon = ["Portal_fon.jpg", "Portal_fon2.jpg", "Portal_fon3.jpg"]
     level = ['map.map', 'map2.map', 'map3.map']
     hero_coords = [(50, 864), (1700, 64), (1000, 864)]
 
@@ -442,7 +446,8 @@ def main():
     screen = pygame.display.set_mode(SIZE)
     clock = pygame.time.Clock()
     pygame.display.set_caption("Portal 2D")
-    if numb == 0:
+    if numb == 0 or numb == 3:
+        numb = 0
         menu()  # запуск меню
 
     # группа спрайтов
@@ -451,10 +456,9 @@ def main():
 
     # установка уровня
     background, platforms, level_map = setup_level(level[numb], hero_coords[numb])
-    numb += 1
 
     # Фон
-    bg = pygame.image.load('data/Portal_fon.jpg')
+    bg = pygame.image.load(f'data/{fon[numb]}',)
     bg = pygame.transform.scale(bg, (850, 500))
     bd_rect = bg.get_rect()
 
@@ -474,6 +478,8 @@ def main():
     pause_btn.sprite.rect.x, pause_btn.sprite.rect.y = 20, 20
     pause_btn.rect = pause_btn.sprite.rect
     pause_group.update()
+
+    numb += 1
 
     while True:
         for event in pygame.event.get():
