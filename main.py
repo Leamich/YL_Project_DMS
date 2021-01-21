@@ -111,6 +111,8 @@ class RoboticHero(AnimatedSprite):
 
     # Функция обновления координат персонажа
     def update(self):
+        self.count_money()
+
         if self.walk:
             if self.horizontal_speed > 0:
                 self.direction = True
@@ -150,6 +152,10 @@ class RoboticHero(AnimatedSprite):
                 if yvel < 0:
                     self.rect.top = pl.rect.bottom
                     self.vertical_speed = 0
+
+    def count_money(self):
+        c = len(pygame.sprite.spritecollide(self, moneys, dokill=True))
+        count_money.apply(c)
 
 
 def next_level():
@@ -305,6 +311,61 @@ class Camera:
         self.state = self.camera_func(self.state, target.rect)
 
 
+class MoneyBlock(pygame.sprite.Sprite):
+    def __init__(self, x, y, *args):
+        im = load_image('money_block.png')
+        im = pygame.transform.scale(im, (im.get_width() // 6,
+                                         im.get_height() // 6))
+        super().__init__(moneys)
+        self.frames = list()
+        self.cut_sheet(im, 1, 4)
+        self.image = self.frames[0]
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x, y
+        self.cur_sheet = 0
+        self.time = 0
+
+        if count_money.image_cube is None:
+            count_money.image_cube = self.frames[0]
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        self.time += 1
+        if self.time == 5:
+            self.time = 0
+            self.cur_sheet = (self.cur_sheet + 1) % len(self.frames)
+            self.image = self.frames[self.cur_sheet]
+
+
+class MoneyCount(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.count = 0
+        self.image_cube = None
+
+    def apply(self, count):
+        self.count += count
+        im = pygame.Surface((80, 50))
+        font = pygame.font.Font(None, 30)
+        im.blit(
+            font.render(f'x {self.count}', True, (255, 255, 255)),
+            pygame.Rect(50, 20, 25, 50)
+        )
+        im.blit(self.image_cube, pygame.Rect(0, 0, 50, 50))
+
+        self.image = im
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = 660, 0
+
+
 # Функция для координат камеры
 def camera_func(camera, target_rect):
     l = -target_rect.x + SIZE[0] / 2.24
@@ -415,6 +476,9 @@ def setup_level(map_file, hero_pos):
                 pl = Platform(x, y, block)
                 all_sprites.add(pl)
                 platforms.append(pl)
+            elif col == '0':
+                pl = MoneyBlock(x, y)
+                all_sprites.add(pl)
             x += 50
         y += 50
         x = 0
@@ -428,6 +492,8 @@ def main():
     global hero
     global platforms
     global numb
+    global moneys
+    global count_money
 
     level = ['map.map', 'map2.map']
     hero_coords = [(50, 864), (1700, 64)]
@@ -441,7 +507,9 @@ def main():
 
     # группа спрайтов
     all_sprites = pygame.sprite.Group()
+    moneys = pygame.sprite.Group()
     hero = RoboticHero()
+    count_money = MoneyCount()
 
     # установка уровня
     background, platforms, level_map = setup_level(level[numb], hero_coords[numb])
@@ -467,6 +535,9 @@ def main():
     pause_btn.sprite.rect = pause_btn.sprite.image.get_rect()
     pause_btn.sprite.rect.x, pause_btn.sprite.rect.y = 20, 20
     pause_btn.rect = pause_btn.sprite.rect
+
+    count_money.add(pause_group)
+    count_money.apply(0)
     pause_group.update()
 
     while True:
