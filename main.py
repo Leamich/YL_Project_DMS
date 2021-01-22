@@ -520,7 +520,6 @@ def main():
     all_sprites = pygame.sprite.Group()
     moneys = pygame.sprite.Group()
     hero = RoboticHero()
-    count_money = MoneyCount()
 
     # установка уровня
     background, platforms, level_map = setup_level(level[numb], hero_coords[numb])
@@ -579,4 +578,5 @@ def main():
 
 
 if __name__ == '__main__':
+    count_money = MoneyCount()
     main()
