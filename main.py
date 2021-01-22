@@ -247,13 +247,19 @@ class PauseMenu(Menu):
             return False
 
         if restart_menu:
-            im = load_image('restart_menu.png')
+            im = load_image('game_over.png')
+            im = pygame.transform.scale(im, (376, 219))
+            font = pygame.font.Font(None, 50)
+            im.blit(font.render(
+                str(count_money.count), True, (0, 0, 0)
+            ), (200, 67))
         else:
             im = load_image('menu_pause.png')
-        self.image =\
-            pygame.transform.scale(im,
-                                   (im.get_width() // 8,
-                                    im.get_height() // 8))
+            im = pygame.transform.scale(im,
+                                        (im.get_width() // 8,
+                                         im.get_height() // 8))
+            print(im.get_width(), im.get_height())
+        self.image = im
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = 200, 150
         if restart_menu:
@@ -362,7 +368,7 @@ class MoneyCount(pygame.sprite.Sprite):
 
     def apply(self, count):
         self.count += count
-        im = pygame.Surface((80, 50))
+        im = pygame.Surface((120, 50))
         font = pygame.font.Font(None, 30)
         im.blit(
             font.render(f'x {self.count}', True, (255, 255, 255)),
@@ -372,7 +378,7 @@ class MoneyCount(pygame.sprite.Sprite):
 
         self.image = im
         self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = 660, 0
+        self.rect.x, self.rect.y = 640, 0
 
 
 # Функция для координат камеры
@@ -525,7 +531,7 @@ def main():
     background, platforms, level_map = setup_level(level[numb], hero_coords[numb])
 
     # Фон
-    bg = pygame.image.load(f'data/{fon[numb]}',)
+    bg = pygame.image.load(f'data/{fon[numb]}', )
     bg = pygame.transform.scale(bg, (850, 500))
     bd_rect = bg.get_rect()
 
@@ -561,6 +567,8 @@ def main():
             if event.type == pygame.KEYUP:
                 if event.key in HERO_KEYS:
                     hero.stop_motion(event.key)
+                if event.key == pygame.K_INSERT:
+                    next_level()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if pause_btn.click_in_pos(event.pos):
                     pause_btn.click()
@@ -579,4 +587,5 @@ def main():
 
 if __name__ == '__main__':
     count_money = MoneyCount()
+    count_money.count = 100
     main()
