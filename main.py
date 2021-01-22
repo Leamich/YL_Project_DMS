@@ -12,11 +12,12 @@ HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
 # Переменные
-numb = 0
+level_number = 0  # номер текущего уровня
 
 
-# Класс анимации персонажа и меню
 class AnimatedSprite(pygame.sprite.Sprite):
+    """Класс анимированного спрайта"""
+
     def __init__(self, sheet, columns, rows, x, y):
         super().__init__()
         self.frames = []
@@ -27,7 +28,6 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.image = self.frames_2[self.cur_frame]
         self.rect = self.rect.move(x, y)
 
-    # Обрезка картинки для анимации движения влево
     def cut_sheet(self, sheet, columns, rows):
         columns = columns // 2
         self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
@@ -133,7 +133,7 @@ class RoboticHero(AnimatedSprite):
         self.y = self.rect.y
         if not self.on_ground:
             self.vertical_speed += HERO_FALL_SPEED
-        if self.x == self.tp_coords[numb - 1][0] and self.y == self.tp_coords[numb - 1][1]:
+        if self.x == self.tp_coords[level_number - 1][0] and self.y == self.tp_coords[level_number - 1][1]:
             next_level()
 
     def fix_collides(self, xvel, yvel):
@@ -156,13 +156,6 @@ class RoboticHero(AnimatedSprite):
     def count_money(self):
         c = len(pygame.sprite.spritecollide(self, moneys, dokill=True))
         count_money.apply(c)
-
-
-def next_level():
-    if numb != 3:
-        main()
-    else:
-        pause(restart_menu=True)
 
 
 class Button:
@@ -195,6 +188,7 @@ class Button:
 
 
 class Menu(AnimatedSprite):
+    """Реализация главного меню"""
     time = 0  # для контроля анимации
     buttons = [Button(pygame.Rect(72, 97, 203, 61)),  # Старт
                Button(pygame.Rect(74, 195, 193, 60)),  # Об игре
@@ -207,15 +201,15 @@ class Menu(AnimatedSprite):
             3, 3, 0, 0)
 
         # Функции для кнопок
-        self.buttons[0].func = lambda: False
-        self.buttons[1].func = about_game
-        self.buttons[2].func = terminate
+        self.buttons[0].func = lambda: False  # выход из функции меню
+        self.buttons[1].func = about_game  # вывод информации об авторах
+        self.buttons[2].func = terminate  # выход из игры
 
     def update(self):
         self.time += 1  # счётчик для уменьшения скорости анимации
         # смена кадра 10 раз в секунду (примерно)
         if self.time % 3 == 0 \
-                and self.cur_frame < len(self.frames) - 1:
+                and self.cur_frame < len(self.frames) - 1:  # анимация проходит только один раз
             super().update()
 
     def get_button(self, pos):
@@ -223,13 +217,18 @@ class Menu(AnimatedSprite):
         По позиции клика определяет какая была нажата кнопка
         Если кнопка не была нажата возвращает None
         """
-        for btn in self.buttons:
-            if btn.click_in_pos(pos):
-                return btn
+        for btn in self.buttons:  # пробегаем по кнопкам
+            if btn.click_in_pos(pos):  # если клик попал на кнопку
+                return btn  # возращаем её
+
+        # иначе возвращаем муляж кнопки,
+        # с значением True для цикла меню
         return Button(func=lambda: True)
 
     def get_func(self, btn):
         """По экземпляру кнопки запускает её функцию"""
+        # вызываем функцию кнопки и говорим,
+        # что намереваемся получить значение
         return btn.click(returnable=True)
 
     def clicked(self, pos):
@@ -239,6 +238,12 @@ class Menu(AnimatedSprite):
 
 
 class PauseMenu(Menu):
+    """
+    Класс для паузы и меню конца игры.
+    Принимает аргумент bool для определения типа меню
+    True - меню паузы, False - конца игры
+    """
+
     def __init__(self, restart_menu=False):
         pygame.sprite.Sprite.__init__(self)
 
@@ -248,17 +253,22 @@ class PauseMenu(Menu):
 
         if restart_menu:
             im = load_image('game_over.png')
+
+            # подравниваем изображение
+            # под рамки меню паузы
             im = pygame.transform.scale(im, (376, 219))
+
+            # вывод счёта
             font = pygame.font.Font(None, 50)
             im.blit(font.render(
                 str(count_money.count), True, (0, 0, 0)
             ), (200, 67))
+
         else:
             im = load_image('menu_pause.png')
             im = pygame.transform.scale(im,
                                         (im.get_width() // 8,
                                          im.get_height() // 8))
-            print(im.get_width(), im.get_height())
         self.image = im
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = 200, 150
@@ -269,17 +279,24 @@ class PauseMenu(Menu):
                             Button(pygame.Rect(253, 269, 271, 55), start_menu)]  # В меню
 
     def update(self):
+        # update нужен исключительно оригинальный
         pygame.sprite.Sprite.update(self)
 
 
 class Platform(pygame.sprite.Sprite):
+    """
+    Класс для платформ
+    x и y - координаты появления блока,
+    block - тип блока (от 1 до 3)
+    """
+
     def __init__(self, x, y, block):
         super().__init__()
-        if block == 1:
+        if block == 1:  # чёрный блок
             image = pygame.image.load('data/black_block.jpg')
-        elif block == 2:
+        elif block == 2:  # белый
             image = pygame.image.load('data/white_block.jpg')
-        elif block == 3:
+        elif block == 3:  # финиш
             image = pygame.image.load('data/translevelblock.jpg')
         self.image = pygame.transform.scale(image, (50, 50))
         self.rect = self.image.get_rect()
@@ -287,8 +304,106 @@ class Platform(pygame.sprite.Sprite):
         self.rect.y = y
 
 
-# Функция загрузки уровня
+class Camera:
+    """Класс камеры для отрисовки уровня на экране"""
+
+    def __init__(self, camera_func, width, height):
+        self.camera_func = camera_func  # функция обработки
+        self.state = pygame.Rect(0, 0, width, height)
+
+    def apply(self, target):
+        """
+        Переносит target (спрайт)
+        в соответствии с положением камеры
+        """
+        return target.rect.move(self.state.topleft)
+
+    def update(self, target):
+        """Нацеливает камеру на target (спрайт)"""
+        self.state = self.camera_func(self.state, target.rect)
+
+
+class MoneyBlock(pygame.sprite.Sprite):
+    """
+    Класс для монеток (квадратиков).
+    Принимает позицию появления
+    """
+
+    def __init__(self, x, y):
+        im = load_image('money_block.png')
+        im = pygame.transform.scale(im, (im.get_width() // 6,
+                                         im.get_height() // 6))
+        super().__init__(moneys)
+
+        # обрезаем спрайт-лист
+        self.frames = list()
+        self.cut_sheet(im, 1, 4)
+
+        self.image = self.frames[0]
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x, y
+
+        # переменные для контроля анимации
+        self.cur_frame = 0
+        self.time = 0
+
+        # загрузка картинки для счётчика очков
+        if count_money.image_cube is None:
+            count_money.image_cube = self.frames[0]
+
+    def cut_sheet(self, sheet, columns, rows):
+        """Обрезка спрайт-листа на кадры"""
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        self.time += 1
+        # задержка анимации до 6 кадров в секунду
+        if self.time == 5:
+            self.time = 0
+            self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+            self.image = self.frames[self.cur_frame]
+
+
+class MoneyCount(pygame.sprite.Sprite):
+    """Класс для счётчика монет"""
+
+    def __init__(self):
+        super().__init__()
+        self.count = 0  # количество монеток
+        self.image_cube = None  # картинка куба
+
+    def apply(self, count):
+        """
+        Изменяет значение счётчика на
+        заданное count
+        """
+        self.count += count  # изменяем счётчик
+
+        # отрисовка счётчика
+        im = pygame.Surface((120, 50))
+        font = pygame.font.Font(None, 30)
+        im.blit(
+            font.render(f'x {self.count}', True, (255, 255, 255)),
+            pygame.Rect(50, 20, 25, 50)
+        )
+        im.blit(self.image_cube, pygame.Rect(0, 0, 50, 50))
+
+        self.image = im
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = 640, 0
+
+
 def load_level(filename):
+    """
+    Функция для загрузки уровня.
+    filename - название файла карты
+    """
     filename = "data/" + filename
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
@@ -296,8 +411,8 @@ def load_level(filename):
     return list(map(lambda x: list(x.ljust(max_width, '.')), level_map))
 
 
-# Я не понял зачем эта функция
 def load_image(name, colorkey=None):
+    """Функция для загрузки изображения"""
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
@@ -313,111 +428,62 @@ def load_image(name, colorkey=None):
     return image
 
 
-# Камера
-class Camera:
-    def __init__(self, camera_func, width, height):
-        self.camera_func = camera_func
-        self.state = pygame.Rect(0, 0, width, height)
-
-    def apply(self, target):
-        return target.rect.move(self.state.topleft)
-
-    def update(self, target):
-        self.state = self.camera_func(self.state, target.rect)
-
-
-class MoneyBlock(pygame.sprite.Sprite):
-    def __init__(self, x, y, *args):
-        im = load_image('money_block.png')
-        im = pygame.transform.scale(im, (im.get_width() // 6,
-                                         im.get_height() // 6))
-        super().__init__(moneys)
-        self.frames = list()
-        self.cut_sheet(im, 1, 4)
-        self.image = self.frames[0]
-        self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = x, y
-        self.cur_sheet = 0
-        self.time = 0
-
-        if count_money.image_cube is None:
-            count_money.image_cube = self.frames[0]
-
-    def cut_sheet(self, sheet, columns, rows):
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames.append(sheet.subsurface(pygame.Rect(
-                    frame_location, self.rect.size)))
-
-    def update(self):
-        self.time += 1
-        if self.time == 5:
-            self.time = 0
-            self.cur_sheet = (self.cur_sheet + 1) % len(self.frames)
-            self.image = self.frames[self.cur_sheet]
-
-
-class MoneyCount(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.count = 0
-        self.image_cube = None
-
-    def apply(self, count):
-        self.count += count
-        im = pygame.Surface((120, 50))
-        font = pygame.font.Font(None, 30)
-        im.blit(
-            font.render(f'x {self.count}', True, (255, 255, 255)),
-            pygame.Rect(50, 20, 25, 50)
-        )
-        im.blit(self.image_cube, pygame.Rect(0, 0, 50, 50))
-
-        self.image = im
-        self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = 640, 0
-
-
-# Функция для координат камеры
 def camera_func(camera, target_rect):
-    l = -target_rect.x + SIZE[0] / 2.24
-    t = -target_rect.y + SIZE[1] / 2.24
+    """Функция для сдвига уровня (нацеливание камеры)"""
+    left = -target_rect.x + SIZE[0] / 2.24
+    top = -target_rect.y + SIZE[1] / 2.24
     w, h = camera.width, camera.height
 
-    l = min(0, l)
-    l = max(-(camera.width - SIZE[0]), l)
-    t = max(-(camera.height - SIZE[1]), t)
-    t = min(0, t)
+    left = min(0, left)
+    left = max(-(camera.width - SIZE[0]), left)
+    top = max(-(camera.height - SIZE[1]), top)
+    top = min(0, top)
 
-    return pygame.Rect(l, t, w, h)
+    return pygame.Rect(left, top, w, h)
 
 
-# Функция закрытия приложения
+def next_level():
+    """Переход на следующий уровень"""
+    if level_number != 3:  # если уровни остались
+        main()  # перезапускаем игру
+    else:
+        pause(restart_menu=True)  # запуск конечного меню
+
+
 def terminate():
+    """Функция для обработки выхода из игры"""
     pygame.quit()
     sys.exit()
 
 
 def about_game():
+    """
+    Функция для главного меню
+    Выводит авторов игры (они там, внизу, да)
+    """
     font = pygame.font.Font(None, 30)
     texts = list()
-    for i in ('Portal 2D',
-              'Авторы:',
-              'Дамир Сагитов',
-              'Михаил Леонтьев',
-              'Сергей Голышев'):
-        texts.append(font.render(i, True, (0, 0, 0)))
-    for i, j in enumerate(texts):
-        menu_sprite.image.blit(j, (400, 200 + i * 20))
+
+    # проходим по строчкам
+    # и рэндерим каждую по отдельности
+    for line in ('Portal 2D',
+                 'Авторы:',
+                 'Дамир Сагитов',
+                 'Михаил Леонтьев',
+                 'Сергей Голышев'):
+        texts.append(font.render(line, True, (0, 0, 0)))
+
+    # помещаем их на изображение меню
+    for i, render_line in enumerate(texts):
+        menu_sprite.image.blit(render_line, (400, 200 + i * 20))
     return True
 
 
 def menu():
-    global menu_sprite
+    """Функция для запуска главного меню"""
+    global menu_sprite  # для функции about_game
 
+    # технические мелочи
     menu_sprite = Menu()
     menu_group = pygame.sprite.Group()
     menu_sprite.add(menu_group)
@@ -426,10 +492,14 @@ def menu():
     running = True
     while running:
         for event in pygame.event.get():
+            # нельзя недооценивать сумасбродство игрока
             if event.type == pygame.QUIT:
                 terminate()
+
+            # обработка нажатия мыши
             if event.type == pygame.MOUSEBUTTONDOWN:
                 running = menu_sprite.clicked(event.pos)
+
         menu_group.update()
         menu_group.draw(screen)
         pygame.display.flip()
@@ -437,6 +507,12 @@ def menu():
 
 
 def pause(restart_menu=False):
+    """
+    Функция для открытия меню паузы и конца игры.
+
+    restart_menu определяет, будет ли запущено меню паузы
+    или меню конца игры.
+    """
     clock = pygame.time.Clock()
 
     # инициализация меню
@@ -444,6 +520,8 @@ def pause(restart_menu=False):
     menu_sprite = PauseMenu(restart_menu=restart_menu)
     menu_group.add(menu_sprite)
 
+    # цикл работает абсолютно также,
+    # как и в menu()
     running = True
     while running:
         for event in pygame.event.get():
@@ -458,9 +536,14 @@ def pause(restart_menu=False):
 
 
 def setup_level(map_file, hero_pos):
+    """
+    Функция для установки уровня
+    (например, установка начальной позиции и тому подобное)
+    """
     # перемещаем персонажа на старт
     global hero
 
+    # 'убиваем' героя и создаём нового
     hero.kill()
     hero = RoboticHero(*hero_pos)
     all_sprites.add(hero)
@@ -502,36 +585,35 @@ def setup_level(map_file, hero_pos):
 
 
 def main():
-    global screen
-    global all_sprites
-    global hero
-    global platforms
-    global numb
-    global moneys
-    global count_money
+    global screen, all_sprites,\
+        hero, platforms,\
+        level_number, moneys,\
+        count_money
 
-    fon = ["Portal_fon.jpg", "Portal_fon2.jpg", "Portal_fon3.jpg"]
-    level = ['map.map', 'map2.map', 'map3.map']
-    hero_coords = [(50, 864), (1700, 64), (1000, 864)]
+    # конфигурация уровней
+    fon = ["Portal_fon.jpg", "Portal_fon2.jpg", "Portal_fon3.jpg"]  # фоны уровней
+    level = ['map.map', 'map2.map', 'map3.map']  # карты уровней
+    hero_coords = [(50, 864), (1700, 64), (1000, 864)]  # начальные позиции
 
-    pygame.init()
-    screen = pygame.display.set_mode(SIZE)
     clock = pygame.time.Clock()
-    pygame.display.set_caption("Portal 2D")
-    if numb == 0 or numb == 3:
-        numb = 0
+
+    # если это начало игры или конец
+    if level_number == 0 or level_number == 3:
+        level_number = 0  # обнуляем уровни
         menu()  # запуск меню
 
-    # группа спрайтов
+    # группы спрайтов
     all_sprites = pygame.sprite.Group()
     moneys = pygame.sprite.Group()
-    hero = RoboticHero()
+    stay_sprites = pygame.sprite.Group()
+
+    hero = RoboticHero()  # появление hero будет задано в setup_level
 
     # установка уровня
-    background, platforms, level_map = setup_level(level[numb], hero_coords[numb])
+    background, platforms, level_map = setup_level(level[level_number], hero_coords[level_number])
 
     # Фон
-    bg = pygame.image.load(f'data/{fon[numb]}', )
+    bg = load_image(fon[level_number])
     bg = pygame.transform.scale(bg, (850, 500))
     bd_rect = bg.get_rect()
 
@@ -541,51 +623,72 @@ def main():
     camera = Camera(camera_func, total_level_width, total_level_height)
 
     # Кнопка паузы
-    pause_group = pygame.sprite.Group()
-
+    # за основу мы берём класс Button и добавляем к нему спрайт
     pause_btn = Button(func=pause)
-    pause_btn.sprite = pygame.sprite.Sprite(pause_group)
+    pause_btn.sprite = pygame.sprite.Sprite(stay_sprites)
     pause_btn.sprite.image = pygame.transform.scale(load_image('pause.png'),
                                                     (50, 50))
     pause_btn.sprite.rect = pause_btn.sprite.image.get_rect()
     pause_btn.sprite.rect.x, pause_btn.sprite.rect.y = 20, 20
     pause_btn.rect = pause_btn.sprite.rect
 
-    count_money.add(pause_group)
+    # добавляем count_money в группу и отрисовываем
+    # отрисовываем с помощью apply, не изменяя значение count
+    # (передавая ему 0)
+    count_money.add(stay_sprites)
     count_money.apply(0)
-    pause_group.update()
 
-    numb += 1
+    # анимация для кнопки и счётчика не поддерживается,
+    # поэтому обновить можно только один раз
+    stay_sprites.update()
+
+    level_number += 1
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
+
             if event.type == pygame.KEYDOWN:
-                if event.key in HERO_KEYS:
-                    hero.motion(event.key)
+                if event.key in HERO_KEYS:  # если клавиша входит в СКД (Союз Клавиш Движения)
+                    hero.motion(event.key)  # отправляем её роботу на обработку
+
             if event.type == pygame.KEYUP:
-                if event.key in HERO_KEYS:
-                    hero.stop_motion(event.key)
+                if event.key in HERO_KEYS:  # если клавиша входит в СКД (Союз Клавиш Движения)
+                    hero.stop_motion(event.key)  # отправляем роботу сигнал об отжатии клавиши
                 if event.key == pygame.K_INSERT:
-                    next_level()
+                    next_level()  # (для разработчиков) досрочный конец уровня
+
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if pause_btn.click_in_pos(event.pos):
-                    pause_btn.click()
-                    hero.stop_motion(pygame.K_RIGHT)
+                if pause_btn.click_in_pos(event.pos):  # если пользователь нажал на кнопку
+                    hero.stop_motion(pygame.K_RIGHT)  # останавливаем робота
+                    pause_btn.click()  # нажимаем её
+        # рисуем фон
         screen.blit(background, (0, 0))
 
+        # рисуем фон 2?
         screen.blit(bg, bd_rect)
+
+        # обновляем спрайты
         all_sprites.update()
+
+        # центрируем камеру и обновляем блоки (и монетки)
         camera.update(hero)
         for e in all_sprites:
             screen.blit(e.image, camera.apply(e))
-        pause_group.draw(screen)
+
+        # рисуем недвижимые элементы
+        stay_sprites.draw(screen)
+
         pygame.display.flip()
         clock.tick(FPS)
 
 
 if __name__ == '__main__':
+    pygame.init()
+    pygame.display.set_caption("Portal 2D")
+    screen = pygame.display.set_mode(SIZE)
+
     count_money = MoneyCount()
-    count_money.count = 100
+
     main()
