@@ -244,14 +244,16 @@ class PauseMenu(Menu):
     True - меню паузы, False - конца игры
     """
 
-    def __init__(self, restart_menu=False):
+    def __init__(self, game_over_menu=False):
         pygame.sprite.Sprite.__init__(self)
 
         def start_menu():  # запуск меню для кнопки
-            menu()
+            global level_number
+            level_number = 0
+            main()
             return False
 
-        if restart_menu:
+        if game_over_menu:
             im = load_image('game_over.png')
 
             # подравниваем изображение
@@ -272,7 +274,7 @@ class PauseMenu(Menu):
         self.image = im
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = 200, 150
-        if restart_menu:
+        if game_over_menu:
             self.buttons = [Button(pygame.Rect(253, 269, 271, 55), start_menu)]  # В меню
         else:
             self.buttons = [Button(pygame.Rect(246, 174, 276, 51), lambda: False),  # Продолжить
@@ -297,7 +299,7 @@ class Platform(pygame.sprite.Sprite):
         elif block == 2:  # белый
             image = pygame.image.load('data/white_block.jpg')
         elif block == 3:  # финиш
-            image = pygame.image.load('data/translevelblock.jpg')
+            image = pygame.image.load('data/trans_level_block.jpg')
         self.image = pygame.transform.scale(image, (50, 50))
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -331,8 +333,8 @@ class MoneyBlock(pygame.sprite.Sprite):
 
     def __init__(self, x, y):
         im = load_image('money_block.png')
-        im = pygame.transform.scale(im, (im.get_width() // 6,
-                                         im.get_height() // 6))
+        im = pygame.transform.scale(im, (40,
+                                         190))
         super().__init__(moneys)
 
         # обрезаем спрайт-лист
@@ -445,9 +447,9 @@ def camera_func(camera, target_rect):
 def next_level():
     """Переход на следующий уровень"""
     if level_number != 3:  # если уровни остались
-        main()  # перезапускаем игру
+        main()  # перезапускаем игру и переходим на следующий уровень
     else:
-        pause(restart_menu=True)  # запуск конечного меню
+        pause(game_over_menu=True)  # запуск конечного меню
 
 
 def terminate():
@@ -506,7 +508,7 @@ def menu():
         clock.tick(FPS)
 
 
-def pause(restart_menu=False):
+def pause(game_over_menu=False):
     """
     Функция для открытия меню паузы и конца игры.
 
@@ -517,7 +519,7 @@ def pause(restart_menu=False):
 
     # инициализация меню
     menu_group = pygame.sprite.Group()
-    menu_sprite = PauseMenu(restart_menu=restart_menu)
+    menu_sprite = PauseMenu(game_over_menu=game_over_menu)
     menu_group.add(menu_sprite)
 
     # цикл работает абсолютно также,
@@ -553,7 +555,7 @@ def setup_level(map_file, hero_pos):
 
     # создание уровня
     background = pygame.Surface((750, 500))
-    background.fill((75, 155, 200))
+    background.fill((0, 0, 0))
     platforms = []
     x = 0
     y = 0
@@ -581,7 +583,7 @@ def setup_level(map_file, hero_pos):
         y += 50
         x = 0
 
-    return background, platforms, level_map
+    return platforms, level_map
 
 
 def main():
@@ -592,7 +594,7 @@ def main():
 
     # конфигурация уровней
     fon = ["Portal_fon.jpg", "Portal_fon2.jpg", "Portal_fon3.jpg"]  # фоны уровней
-    level = ['map.map', 'map2.map', 'map3.map']  # карты уровней
+    level = ['map.map', 'map_2.map', 'map_3.map']  # карты уровней
     hero_coords = [(50, 864), (1700, 64), (1000, 864)]  # начальные позиции
 
     clock = pygame.time.Clock()
@@ -600,6 +602,7 @@ def main():
     # если это начало игры или конец
     if level_number == 0 or level_number == 3:
         level_number = 0  # обнуляем уровни
+        count_money = MoneyCount() # обнуляем монетки
         menu()  # запуск меню
 
     # группы спрайтов
@@ -610,7 +613,7 @@ def main():
     hero = RoboticHero()  # появление hero будет задано в setup_level
 
     # установка уровня
-    background, platforms, level_map = setup_level(level[level_number], hero_coords[level_number])
+    platforms, level_map = setup_level(level[level_number], hero_coords[level_number])
 
     # Фон
     bg = load_image(fon[level_number])
@@ -663,10 +666,8 @@ def main():
                 if pause_btn.click_in_pos(event.pos):  # если пользователь нажал на кнопку
                     hero.stop_motion(pygame.K_RIGHT)  # останавливаем робота
                     pause_btn.click()  # нажимаем её
-        # рисуем фон
-        screen.blit(background, (0, 0))
 
-        # рисуем фон 2?
+        # рисуем фон
         screen.blit(bg, bd_rect)
 
         # обновляем спрайты
