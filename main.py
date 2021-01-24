@@ -593,7 +593,7 @@ def main():
         count_money
 
     # конфигурация уровней
-    fon = ["Portal_fon.jpg", "Portal_fon2.jpg", "Portal_fon3.jpg"]  # фоны уровней
+    fon = ["Portal_fon.jpg", "Portal_fon_2.jpg", "Portal_fon_3.jpg"]  # фоны уровней
     level = ['map.map', 'map_2.map', 'map_3.map']  # карты уровней
     hero_coords = [(50, 864), (1700, 64), (1000, 864)]  # начальные позиции
 
