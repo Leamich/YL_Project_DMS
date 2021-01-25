@@ -7,7 +7,7 @@ FPS = 30
 SIZE = (750, 500)
 HERO_FALL_SPEED = 100
 HERO_JUMP_SPEED = -800
-HERO_RUN_SPEED = 175
+HERO_RUN_SPEED = 180
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
