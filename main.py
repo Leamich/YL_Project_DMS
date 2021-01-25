@@ -7,7 +7,7 @@ FPS = 30
 SIZE = (750, 500)
 HERO_FALL_SPEED = 100
 HERO_JUMP_SPEED = -800
-HERO_RUN_SPEED = 180
+HERO_RUN_SPEED = 175
 HERO_KEYS = [pygame.K_w, pygame.K_a, pygame.K_d,
              pygame.K_UP, pygame.K_LEFT, pygame.K_RIGHT]
 
@@ -16,19 +16,21 @@ level_number = 0  # номер текущего уровня
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
-    """Класс анимированного спрайта"""
-
+    """Класс анимированого спрайта"""
     def __init__(self, sheet, columns, rows, x, y):
         super().__init__()
+        # разделение кадров для корректной работы анимации движения
         self.frames = []
         self.frames_2 = []
         self.cut_sheet(sheet, columns, rows)
         self.cut_sheet_2(sheet, columns, rows)
+        # отрисовка первого кадра
         self.cur_frame = 0
         self.image = self.frames_2[self.cur_frame]
         self.rect = self.rect.move(x, y)
 
     def cut_sheet(self, sheet, columns, rows):
+        """Обрезка картинки для анимации движения влево"""
         columns = columns // 2
         self.rect = pygame.Rect(0, 0, sheet.get_width() // 6,
                                 sheet.get_height() // rows)
@@ -38,8 +40,8 @@ class AnimatedSprite(pygame.sprite.Sprite):
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    # Обрезка картинки для анимации движения вправо
     def cut_sheet_2(self, sheet, columns, rows):
+        """Обрезка картинки для анимации движения вправо"""
         columns_full = columns
         columns = columns // 2
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns_full,
@@ -50,9 +52,9 @@ class AnimatedSprite(pygame.sprite.Sprite):
                 self.frames_2.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    # Обновление анимации
     def update(self):
-        self.cur_frame = (self.cur_frame + 1) % 9  # len(self.frames)
+        """Обновление анимации"""
+        self.cur_frame = (self.cur_frame + 1) % 9
         self.image = self.frames_2[self.cur_frame]
 
 
@@ -62,20 +64,20 @@ class RoboticHero(AnimatedSprite):
     Класс для игрока
     х и у - координаты места первого появления персонажа
     """
-
     def __init__(self, x=0, y=0):
-        img = load_image('robot_steps.png')
+        img = load_image('robot_steps.png')  # загрузка изображения
+        # отправка изображения в родительский класс для анимации движения
         super().__init__(pygame.transform.scale(
             img, (img.get_width() // 3, img.get_height() // 3)),
             6, 1, x, y)
-        self.tp_coords = [(350, 864), (970, 64), (1870, 864)]
-        self.direction = True
-        self.on_ground = True
-        self.bool = True
-        self.walk = False  # идёт ли персонаж (для анимации)
+        self.next_level_coords = [(350, 864), (970, 64), (1870, 864)]  # координаты перехода на следующий уровень
+        self.direction = True  # направление движения
+        self.on_ground = True  # находится ли персонаж на земле
+        self.jump_in_air = True  # для прыжка в воздухе
+        self.walk = False  # идёт ли персонаж
         self.horizontal_speed = 0  # если > 0 - идёт вправо, < 0 - влево
         self.vertical_speed = 0  # если < 0 - вверх, > 0 - вниз
-        self.x, self.y = self.rect.x, self.rect.y
+        self.x, self.y = self.rect.x, self.rect.y  # координаты
 
     def motion(self, key):
         """
@@ -83,13 +85,13 @@ class RoboticHero(AnimatedSprite):
         Принимает нажатую клавишу.
         """
         if key in (pygame.K_w, pygame.K_UP):  # прыжок
-            if self.bool:
+            if self.jump_in_air:
                 self.vertical_speed = HERO_JUMP_SPEED
-                self.bool = False
-        if key in (pygame.K_a, pygame.K_LEFT):
+                self.jump_in_air = False
+        if key in (pygame.K_a, pygame.K_LEFT):  # движение влево
             self.horizontal_speed = -HERO_RUN_SPEED
             self.walk = True
-        if key in (pygame.K_d, pygame.K_RIGHT):
+        if key in (pygame.K_d, pygame.K_RIGHT):  # движение вправо
             self.horizontal_speed = HERO_RUN_SPEED
             self.walk = True
 
@@ -99,9 +101,10 @@ class RoboticHero(AnimatedSprite):
                    pygame.K_d, pygame.K_RIGHT):
             self.horizontal_speed = 0
             self.walk = False
-            if self.direction:
+            # определение направленния для анимации
+            if self.direction:  # вправо
                 self.image = self.frames_2[0]
-            else:
+            else:  # влево
                 self.image = self.frames[2]
             keys = pygame.key.get_pressed()  # нажатые клавиши
             if keys[pygame.K_a] or keys[pygame.K_LEFT]:
@@ -109,19 +112,24 @@ class RoboticHero(AnimatedSprite):
             elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
                 self.motion(pygame.K_RIGHT)  # если зажата правая кнопка
 
-    # Функция обновления координат персонажа
     def update(self):
+        """Функция обновления координат персонажа"""
         self.count_money()
 
+        # для анимации шагов
         if self.walk:
+            # вправо
             if self.horizontal_speed > 0:
                 self.direction = True
                 self.cur_frame = (self.cur_frame + 1) % 3
                 self.image = self.frames_2[self.cur_frame]
+            # влево
             elif self.horizontal_speed < 0:
                 self.direction = False
                 self.cur_frame = (self.cur_frame + 1) % 3
                 self.image = self.frames[self.cur_frame]
+
+        # вызов защиты от наскоков и сохранение текущих координат
         self.on_ground = False
         self.y += self.vertical_speed / FPS
         self.rect.y = int(self.y)
@@ -131,24 +139,31 @@ class RoboticHero(AnimatedSprite):
         self.fix_collides(self.horizontal_speed, 0)
         self.x = self.rect.x
         self.y = self.rect.y
+
+        # ускорение свободного падения
         if not self.on_ground:
             self.vertical_speed += HERO_FALL_SPEED
-        if self.x == self.tp_coords[level_number - 1][0] and self.y == self.tp_coords[level_number - 1][1]:
+
+        # переход на другой уровень
+        if self.x == self.next_level_coords[level_number - 1][0] and \
+                self.y == self.next_level_coords[level_number - 1][1]:
             next_level()
 
     def fix_collides(self, xvel, yvel):
-        """Защита от наскоков (в дальнейшем будет дополняться)"""
-        for pl in platforms:
-            if pygame.sprite.collide_rect(self, pl):
+        """Защита от наскоков"""
+        for pl in platforms:  # проверяем все платформы
+            if pygame.sprite.collide_rect(self, pl):  # если есть пересечение
+                # задаем персонажу координаты края той стороны блока с котрой он пересёкся
                 if xvel > 0:
                     self.rect.right = pl.rect.left
                 if xvel < 0:
                     self.rect.left = pl.rect.right
+                # и при необходимости обнуляем вертикальную скорость
                 if yvel > 0:
                     self.rect.bottom = (pl.rect.top - 1)
                     self.on_ground = True
                     self.vertical_speed = 0
-                    self.bool = True
+                    self.jump_in_air = True
                 if yvel < 0:
                     self.rect.top = pl.rect.bottom
                     self.vertical_speed = 0
@@ -160,7 +175,6 @@ class RoboticHero(AnimatedSprite):
 
 class Button:
     """Класс, симулирующий кнопку"""
-
     def __init__(self, rect=None, func=None):
         self.rect = rect  # прямоугольник, где находится кнопка
         self.func = func  # функция при нажатии
@@ -291,14 +305,13 @@ class Platform(pygame.sprite.Sprite):
     x и y - координаты появления блока,
     block - тип блока (от 1 до 3)
     """
-
     def __init__(self, x, y, block):
         super().__init__()
         if block == 1:  # чёрный блок
             image = pygame.image.load('data/black_block.jpg')
         elif block == 2:  # белый
             image = pygame.image.load('data/white_block.jpg')
-        elif block == 3:  # финиш
+        elif block == 3:  # блок для перехода на следующий уровень
             image = pygame.image.load('data/trans_level_block.jpg')
         self.image = pygame.transform.scale(image, (50, 50))
         self.rect = self.image.get_rect()
@@ -308,7 +321,6 @@ class Platform(pygame.sprite.Sprite):
 
 class Camera:
     """Класс камеры для отрисовки уровня на экране"""
-
     def __init__(self, camera_func, width, height):
         self.camera_func = camera_func  # функция обработки
         self.state = pygame.Rect(0, 0, width, height)
@@ -330,7 +342,6 @@ class MoneyBlock(pygame.sprite.Sprite):
     Класс для монеток (квадратиков).
     Принимает позицию появления
     """
-
     def __init__(self, x, y):
         im = load_image('money_block.png')
         im = pygame.transform.scale(im, (40,
@@ -374,7 +385,6 @@ class MoneyBlock(pygame.sprite.Sprite):
 
 class MoneyCount(pygame.sprite.Sprite):
     """Класс для счётчика монет"""
-
     def __init__(self):
         super().__init__()
         self.count = 0  # количество монеток
@@ -483,6 +493,7 @@ def about_game():
 
 def menu():
     """Функция для запуска главного меню"""
+
     global menu_sprite  # для функции about_game
 
     # технические мелочи
@@ -559,6 +570,9 @@ def setup_level(map_file, hero_pos):
     platforms = []
     x = 0
     y = 0
+    # просматриваем файл с картой
+    # и определяем тип каждого блока и его координаты
+    # для добавления в группу спрайтов
     for row in level_map:
         for col in row:
             if col == '-':
@@ -587,9 +601,9 @@ def setup_level(map_file, hero_pos):
 
 
 def main():
-    global screen, all_sprites,\
-        hero, platforms,\
-        level_number, moneys,\
+    global screen, all_sprites, \
+        hero, platforms, \
+        level_number, moneys, \
         count_money
 
     # конфигурация уровней
@@ -602,7 +616,7 @@ def main():
     # если это начало игры или конец
     if level_number == 0 or level_number == 3:
         level_number = 0  # обнуляем уровни
-        count_money = MoneyCount() # обнуляем монетки
+        count_money = MoneyCount()  # обнуляем счетчик монеток
         menu()  # запуск меню
 
     # группы спрайтов
@@ -610,7 +624,8 @@ def main():
     moneys = pygame.sprite.Group()
     stay_sprites = pygame.sprite.Group()
 
-    hero = RoboticHero()  # появление hero будет задано в setup_level
+    # появление hero будет задано в setup_level
+    hero = RoboticHero()
 
     # установка уровня
     platforms, level_map = setup_level(level[level_number], hero_coords[level_number])
@@ -645,6 +660,7 @@ def main():
     # поэтому обновить можно только один раз
     stay_sprites.update()
 
+    # увеличиваем номер текущего уровня
     level_number += 1
 
     while True:
@@ -660,7 +676,7 @@ def main():
                 if event.key in HERO_KEYS:  # если клавиша входит в СКД (Союз Клавиш Движения)
                     hero.stop_motion(event.key)  # отправляем роботу сигнал об отжатии клавиши
                 if event.key == pygame.K_INSERT:
-                    next_level()  # (для разработчиков) досрочный конец уровня
+                    next_level()  # (для разработчиков) досрочный конец уровня и переход на следующий
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if pause_btn.click_in_pos(event.pos):  # если пользователь нажал на кнопку
